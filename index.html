@@ -210,19 +210,19 @@
 
 <script>
     // --- COMPETITIVE PHYSICS CONSTANTS ---
-    const GRAVITY = 0.95;       // Floatier anime-style
+    const GRAVITY = 1.0;       // Floatier anime-style
     const TERMINAL_VELOCITY = 14; // Max fall speed
-    const MOVE_SPEED = 14;     
+    const MOVE_SPEED = 14.5;     
     const MOVE_ACCEL = 1.8;    // Acceleration-based movement
     const MOVE_DECEL = 0.7;   // Ground friction multiplier
     const JUMP_POWER = -18;    
-    const DASH_SPEED = 38;     
+    const DASH_SPEED = 40;     
     const DASH_DURATION = 6;   
     const ATTACK_DURATION = 12; // Longer for windup/swing/recovery
     const MAX_HEALTH = 1000;
     const BASE_DMG = 20;
     const ULT_DMG = 200;
-    const BEAM_GROW_SPEED = 28; // How fast beam extends outward
+    const BEAM_GROW_SPEED = 36; // How fast beam extends outward
     const BEAM_MAX_LENGTH = 1200;
     
     // --- DATABASE ---
@@ -656,6 +656,7 @@
             this.vibrateTimer = 0;
             
             this.health = MAX_HEALTH; this.energy = 0; this.hitStunTimer = 0; this.hitFlashTimer = 0;
+            this.isBeamPushed = false; this.beamPushDirection = 1;
             this.comboCount = 0; this.comboTimer = 0;
         }
 
@@ -718,6 +719,8 @@
             
             ctx.translate(x + this.width/2 + (Math.max(0, attackAnim) * 25 * facingOverride) + vibeX, y + vibeY);
             if (facingOverride === -1) ctx.scale(-1, 1); 
+            // Beam Push tilt
+            if (this.isBeamPushed) { ctx.rotate(this.beamPushDirection * 0.4); }
             // Knockdown tumble rotation
             if (this.isKnockedDown && alpha === 1) { ctx.rotate(this.tumbleRotation); }
             else if (this.isAttacking && this.data.type !== 'stretchy') { ctx.rotate(Math.max(0, attackAnim) * 0.2); }
@@ -972,11 +975,105 @@
     }
 
     function drawMap() {
-        let bg = ctx.createLinearGradient(0, 0, 0, canvas.height); bg.addColorStop(0, currentMapData.bg1); bg.addColorStop(1, currentMapData.bg2);
+        let bg = ctx.createLinearGradient(0, 0, 0, Math.max(canvas.height, 100)); bg.addColorStop(0, currentMapData.bg1); bg.addColorStop(1, currentMapData.bg2);
         ctx.fillStyle = bg; ctx.fillRect(-canvas.width, -canvas.height, canvas.width*3, canvas.height*3); 
 
+        ctx.save();
+        let name = currentMapData.name;
+        
+        // Detailed Parallax/Backgrounds
+        if (name === 'Tournament') {
+            // Bleachers and crowds
+            ctx.fillStyle = '#3a2000'; ctx.fillRect(-500, canvas.height - 350, 2500, 300);
+            for(let y=canvas.height - 350; y<canvas.height-50; y+=40) {
+                ctx.fillStyle = '#4a2800'; ctx.fillRect(-500, y, 2500, 20);
+                ctx.fillStyle = '#221100'; 
+                for(let x=-400; x<2000; x+=30) { if (Math.random() > 0.3) { ctx.beginPath(); ctx.arc(x, y-10, 10, 0, Math.PI*2); ctx.fill(); ctx.fillRect(x-15, y-5, 30, 25); } }
+            }
+            // Pillars
+            ctx.fillStyle = '#d4c08c';
+            for(let x=-200; x<1600; x+=400) { ctx.fillRect(x, -200, 60, canvas.height); ctx.fillStyle = '#a6905a'; ctx.fillRect(x+10, -200, 10, canvas.height); ctx.fillRect(x+40, -200, 10, canvas.height); ctx.fillStyle = '#d4c08c'; }
+            // Banners
+            ctx.fillStyle = '#cc0000'; ctx.fillRect(400, 50, 120, 250); ctx.fillRect(800, 50, 120, 250);
+            ctx.fillStyle = '#ffcc00'; ctx.font = '50px Impact'; ctx.textAlign='center'; ctx.fillText("武", 460, 120); ctx.fillText("道", 460, 180); ctx.fillText("会", 460, 240);
+        } else if (name === 'Sky Ruins') {
+            // Clouds
+            ctx.fillStyle = 'rgba(255,255,255,0.4)';
+            let timeOsc = Math.sin(Date.now() * 0.0005) * 100;
+            for(let i=0; i<15; i++) { ctx.beginPath(); ctx.ellipse(-500 + i*200 + timeOsc * (i%2===0?1:-1), 150 + (i%3)*100, 150, 50, 0, 0, Math.PI*2); ctx.fill(); }
+            // Broken floating pillars
+            ctx.fillStyle = '#6b7b94';
+            for(let i=0; i<8; i++) { 
+                let px = -200 + i*300; let py = canvas.height - 200 - (i%2)*100;
+                ctx.fillRect(px, py, 80, 500); ctx.fillStyle = '#4a4e69'; ctx.fillRect(px+60, py, 20, 500); ctx.fillStyle = '#6b7b94';
+                // Vines
+                ctx.strokeStyle = '#2d4c1e'; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(px+10, py); ctx.bezierCurveTo(px+30, py+50, px-20, py+100, px+40, py+150); ctx.stroke();
+            }
+        } else if (name === 'Volcano Core') {
+            // Stalactites
+            ctx.fillStyle = '#1a0000';
+            for(let i=0; i<12; i++) { ctx.beginPath(); ctx.moveTo(i*200-200, -200); ctx.lineTo(i*200-150, 300 + Math.random()*200); ctx.lineTo(i*200-50, -200); ctx.fill(); }
+            // Glowing magma cracks
+            for(let i=0; i<30; i++) { ctx.strokeStyle = '#ff3300'; ctx.lineWidth = Math.random()*5+2; ctx.beginPath(); ctx.moveTo((i%10)*250-200, (Math.floor(i/10))*250-100); ctx.lineTo((i%10)*250-100, (Math.floor(i/10))*250 + 100); ctx.stroke(); }
+            // Heat distortion fog
+            ctx.fillStyle = 'rgba(255, 50, 0, 0.1)'; ctx.fillRect(-canvas.width, -canvas.height, canvas.width*3, canvas.height*3);
+        } else if (name === 'Infinity Castle') {
+            // Infinite wood logic (crazy stairs)
+            ctx.strokeStyle = '#3a2110'; ctx.lineWidth = 8;
+            for(let i=0; i<15; i++) {
+                ctx.fillStyle = '#5c3a21'; ctx.beginPath(); ctx.moveTo(-500 + i*300, -200); ctx.lineTo(200 + i*300, canvas.height); ctx.lineTo(250 + i*300, canvas.height); ctx.lineTo(-450 + i*300, -200); ctx.fill(); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(1000 - i*300, -200); ctx.lineTo(-100 - i*300, canvas.height); ctx.lineTo(-50 - i*300, canvas.height); ctx.lineTo(1050 - i*300, -200); ctx.fill(); ctx.stroke();
+            }
+            // Traditional sliding doors background
+            ctx.fillStyle = '#ffe4b5'; ctx.fillRect(-canvas.width, -canvas.height, canvas.width*3, canvas.height+300);
+            ctx.strokeStyle = '#2e1c10'; ctx.lineWidth = 4;
+            for(let x=-500; x<2000; x+=150) { ctx.strokeRect(x, 100, 150, 400); ctx.strokeRect(x, 100, 150, 200); ctx.strokeRect(x+75, 100, 1, 400); }
+        } else if (name === 'Shibuya Night') {
+            // Buildings
+            ctx.fillStyle = '#0a0a0a';
+            for(let x=-500; x<2000; x+=250) {
+                let bw = 150 + Math.random()*100; let bh = 400 + Math.random()*300;
+                ctx.fillRect(x, canvas.height - bh, bw, bh);
+                // Windows
+                ctx.fillStyle = (Math.random() > 0.5) ? '#ffcc00' : '#444';
+                for(let wy=canvas.height - bh + 20; wy < canvas.height - 50; wy+=40) {
+                    for(let wx=x+10; wx < x+bw-20; wx+=30) {
+                        ctx.fillStyle = (Math.random() > 0.8) ? '#ffcc00' : (Math.random() > 0.7 ? '#ffffff' : '#444');
+                        if (x !== -500 && x !== 1500) ctx.fillRect(wx, wy, 15, 20); 
+                    }
+                }
+                ctx.fillStyle = '#0a0a0a';
+            }
+            // Neon Signs
+            ctx.shadowBlur = 20; ctx.font = 'bold 60px Impact'; ctx.textAlign='center';
+            ctx.shadowColor = '#00ffff'; ctx.fillStyle = '#e6ffff'; ctx.fillText("NEO TOKYO", 300, 300);
+            ctx.shadowColor = '#ff00ff'; ctx.fillStyle = '#ffe6ff'; ctx.fillText("ANIME CLASH", 900, 450);
+            ctx.shadowBlur = 0;
+            // Streetlights
+            ctx.fillStyle = '#444'; 
+            for(let x=-200; x<1600; x+=400) { ctx.fillRect(x, canvas.height-300, 15, 300); ctx.fillStyle = 'white'; ctx.shadowBlur = 40; ctx.shadowColor = 'white'; ctx.beginPath(); ctx.arc(x+7, canvas.height-300, 20, 0, Math.PI*2); ctx.fill(); ctx.shadowBlur = 0; ctx.fillStyle = '#444';}
+        } else if (name === 'U.A. Stadium') {
+            // Stadium structure
+            ctx.fillStyle = '#b3d9ff'; ctx.fillRect(-500, canvas.height - 400, 2500, 350);
+            ctx.strokeStyle = '#0055ff'; ctx.lineWidth = 15;
+            for(let x=-500; x<2500; x+=300) { ctx.beginPath(); ctx.arc(x, canvas.height-400, 200, Math.PI, 0); ctx.stroke(); }
+            // Giant Screen
+            ctx.fillStyle = '#111'; ctx.fillRect(250, 50, 800, 300); ctx.strokeStyle = '#00ccff'; ctx.lineWidth = 8; ctx.strokeRect(250, 50, 800, 300);
+            ctx.fillStyle = '#00ccff'; ctx.font = '80px Impact'; ctx.textAlign = 'center'; ctx.fillText("SPORTS FESTIVAL", 650, 200);
+        }
+
+        ctx.restore();
+
+        // Floor
         ctx.fillStyle = currentMapData.floor; ctx.fillRect(-canvas.width, canvas.height - 50, canvas.width*3, 50);
         ctx.strokeStyle = currentMapData.line; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(-canvas.width, canvas.height - 50); ctx.lineTo(canvas.width*3, canvas.height - 50); ctx.stroke();
+
+        // Extra dynamic floor accents
+        if (name === 'U.A. Stadium') {
+            ctx.strokeStyle = 'white'; ctx.lineWidth = 4;
+            for(let x=-500; x<2000; x+=200) { ctx.beginPath(); ctx.moveTo(x, canvas.height-50); ctx.lineTo(x-100, canvas.height); ctx.stroke(); }
+            ctx.beginPath(); ctx.moveTo(-canvas.width, canvas.height-25); ctx.lineTo(canvas.width*3, canvas.height-25); ctx.stroke();
+        }
 
         if (currentMapData.hazards.length > 0) { ctx.fillStyle = '#111'; ctx.fillRect(-canvas.width, canvas.height - 50, canvas.width + 440, 50); ctx.fillRect(840, canvas.height - 50, canvas.width*2, 50); }
         currentMapData.hazards.forEach(haz => {
@@ -1005,10 +1102,29 @@
 
             cpuTimer = Math.floor(Math.random() * 15) + reactionBase; player2.isBlocking = false; player2.velocity.x = 0;
 
-            if (player1.isShooting) { if (Math.random() < blockProb) player2.isBlocking = true; else if(Math.random() < jumpProb) player2.jump(); return; }
+            if (player1.isShooting) {
+                if (player2.energy >= 100 && cpuDifficulty !== 'easy') { player2.fireBeam(); } // Trigger beam clash!
+                else if (Math.random() < blockProb) { player2.isBlocking = true; } 
+                else if (Math.random() < jumpProb) { player2.jump(); }
+                return;
+            }
             if (player2.energy >= 100 && absDist < 800 && Math.random() < ultProb && !player1.isShooting) { player2.fireBeam(); return; }
             
             if (Math.random() < idleProb) { if (Math.random() > 0.5) player2.velocity.x = -player2.facing * (MOVE_SPEED * 0.5); return; }
+
+            // Anti-camping: if player is just holding block
+            if (player1.isBlocking && cpuDifficulty !== 'easy') {
+                if (absDist > 200) {
+                    if (Math.random() < dashProb) player2.dash(); else player2.velocity.x = player2.facing * MOVE_SPEED;
+                    return;
+                } else {
+                    if (player2.position.y >= canvas.height - 50 - player2.height) {
+                        player2.jump(); player2.velocity.x = player2.facing * MOVE_SPEED; return; // Cross-up attempt
+                    } else if (Math.random() < attackProb) {
+                        player2.attack();
+                    }
+                }
+            }
 
             if (absDist < 180) { 
                 if (player1.isAttacking && Math.random() < blockProb) player2.isBlocking = true; else if (Math.random() < attackProb) player2.attack();
@@ -1019,7 +1135,9 @@
             }
         } else {
             if (!player2.isBlocking && !player2.isAttacking && !player2.isDashing && absDist > 160) {
-                if (cpuDifficulty === 'hard') player2.velocity.x = player2.facing * MOVE_SPEED;
+                // If crossing up in the air, keep moving forward!
+                if (player1.isBlocking && player2.position.y < canvas.height - 150) player2.velocity.x = player2.facing * MOVE_SPEED;
+                else if (cpuDifficulty === 'hard') player2.velocity.x = player2.facing * MOVE_SPEED;
                 else if (cpuDifficulty === 'medium' && Math.random() > 0.1) player2.velocity.x = player2.facing * (MOVE_SPEED * 0.8);
             }
         }
@@ -1032,7 +1150,7 @@
         ctx.save();
         if (screenShake > 0) { ctx.translate((Math.random() - 0.5) * screenShake, (Math.random() - 0.5) * screenShake); screenShake *= 0.85; if (screenShake < 0.5) screenShake = 0; }
 
-        let targetZoom = 1; let targetCamX = 0; let targetCamY = 0;
+        let targetZoom = 0.80; let targetCamX = 0; let targetCamY = 0;
         if (cinematicTimer > 0) {
             targetZoom = 1.8; targetCamX = (canvas.width / 2) - (cinematicTarget.position.x + cinematicTarget.width / 2); targetCamY = (canvas.height / 2) - (cinematicTarget.position.y + cinematicTarget.height / 2) + 30; 
             cinematicTimer--;
@@ -1142,43 +1260,57 @@
             projectiles.forEach((proj, index) => {
                 proj.update();
                 let type = proj.data.projType;
-                let isBeamType = (type==='beam'||type==='fist'||type==='smash'||type==='whip');
+                let isBeamType = (type==='beam'||type==='fist'||type==='smash'||type==='whip'||type==='slash'||type==='cleave');
                 
-                if (!proj.isClashing) {
-                    if (proj.ownerRef === player1 && collisionDetection(proj, player2)) {
+                if (!proj.isClashing && !proj.pushingTarget) {
+                    let target = proj.ownerRef === player1 ? player2 : player1;
+                    if (target && collisionDetection(proj, target)) {
                         if (isBeamType && proj.stoppedAt === null) {
-                            // Stop beam at opponent
-                            proj.stoppedAt = player2.position.x;
-                            proj.currentLength = Math.abs(player2.position.x - proj.originX) + 25;
-                        }
-                        if (!proj.hitDone) {
+                            if (!proj.hitDone) {
+                                target.takeHit(ULT_DMG, proj.direction, true);
+                                proj.pushingTarget = target;
+                                target.isBeamPushed = true;
+                                target.beamPushDirection = proj.direction;
+                                proj.hitDone = true;
+                                ctx.save(); ctx.globalCompositeOperation = 'lighter';
+                                ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.fillRect(-canvas.width,-canvas.height,canvas.width*3,canvas.height*3);
+                                ctx.restore();
+                            }
+                        } else if (!isBeamType && !proj.hitDone) {
                             proj.hitDone = true;
-                            player2.takeHit(ULT_DMG, 1, true);
-                            // Screen flash
+                            target.takeHit(ULT_DMG, proj.direction, true);
                             ctx.save(); ctx.globalCompositeOperation = 'lighter';
                             ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.fillRect(-canvas.width,-canvas.height,canvas.width*3,canvas.height*3);
                             ctx.restore();
-                            if (!isBeamType) proj.markedForDeletion = true;
-                            if (player2.health <= 0) determineWinner();
-                        }
-                    }
-                    if (proj.ownerRef === player2 && collisionDetection(proj, player1)) {
-                        if (isBeamType && proj.stoppedAt === null) {
-                            proj.stoppedAt = player1.position.x;
-                            proj.currentLength = Math.abs(player1.position.x - proj.originX) + 25;
-                        }
-                        if (!proj.hitDone) {
-                            proj.hitDone = true;
-                            player1.takeHit(ULT_DMG, -1, true);
-                            ctx.save(); ctx.globalCompositeOperation = 'lighter';
-                            ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.fillRect(-canvas.width,-canvas.height,canvas.width*3,canvas.height*3);
-                            ctx.restore();
-                            if (!isBeamType) proj.markedForDeletion = true;
-                            if (player1.health <= 0) determineWinner();
+                            proj.markedForDeletion = true;
+                            if (target.health <= 0) determineWinner();
                         }
                     }
                 }
-                if (proj.markedForDeletion) projectiles.splice(index, 1);
+                
+                if (proj.pushingTarget) {
+                    let t = proj.pushingTarget;
+                    t.isBeamPushed = true;
+                    t.velocity.x = proj.direction * 30; // Forceful dynamic push
+                    t.position.x += t.velocity.x;
+                    proj.currentLength = Math.abs(t.position.x + (proj.direction===1 ? 0 : t.width) - proj.originX);
+                    // Hit global boundary wall
+                    if (t.position.x <= 0 || t.position.x + t.width >= canvas.width) {
+                        t.position.x = t.position.x <= 0 ? 0 : canvas.width - t.width;
+                        t.isBeamPushed = false;
+                        t.takeHit(100, proj.direction, true, true); // Wall crash damage
+                        screenShake = 40; playSound('heavy_hit');
+                        for(let k=0; k<25; k++) particles.push(new Particle(t.position.x+t.width/2, t.position.y+t.height/2, (Math.random()-0.5)*30, (Math.random()-0.5)*30, proj.data.projColor, 20));
+                        proj.markedForDeletion = true;
+                        proj.pushingTarget = null;
+                        if (t.health <= 0) determineWinner();
+                    }
+                }
+
+                if (proj.markedForDeletion) {
+                    if (proj.pushingTarget) proj.pushingTarget.isBeamPushed = false;
+                    projectiles.splice(index, 1);
+                }
             });
         }
 
