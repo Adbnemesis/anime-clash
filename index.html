@@ -87,9 +87,24 @@
         .controls { margin-top: 25px; text-align: center; color: #aaa; font-size: 18px; line-height: 1.8; display: none; background: rgba(0,0,0,0.8); padding: 15px 30px; border: 2px solid #444;}
         .controls strong { color: #fff; font-size: 20px;}
         .highlight { color: #00ffff; } .highlight2 { color: #ff0055; } .dash-txt { color: #ffaa00; }
+        
+        /* CONTROLS MODAL */
+        #controls-modal { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; background: rgba(0,0,0,0.95); z-index: 200; flex-direction: column; align-items: center; justify-content: center; overflow-y: auto;}
+        .controls-grid { display: flex; gap: 40px; margin-top: 30px; }
+        .controls-col { background: rgba(255,255,255,0.05); border: 2px solid #555; padding: 20px; text-align: left; width: 350px;}
+        .controls-col h2 { color: #fff; text-align: center; margin-top: 0; text-shadow: 0 0 10px #fff; }
+        .ctrl-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #333; padding-bottom: 10px;}
+        .ctrl-lbl { color: #aaa; font-size: 18px; }
+        .ctrl-btn { background: #222; border: 2px solid #aaa; color: #fff; font-size: 16px; width: 120px; padding: 8px; cursor: pointer; transition: all 0.1s; text-align: center; text-transform: uppercase;}
+        .ctrl-btn:hover { border-color: #00ffff; box-shadow: 0 0 10px #00ffff; }
+        .ctrl-btn.listening { background: #00ffff; color: #000; box-shadow: 0 0 20px #00ffff; animation: pulse 1s infinite; }
+        .reset-btn { width: 100%; background: #550000; border: 2px solid #ff0055; color: #fff; padding: 10px; margin-top: 20px; cursor: pointer; font-size: 18px; transition: 0.1s;}
+        .reset-btn:hover { background: #ff0055; box-shadow: 0 0 15px #ff0055; }
+        #ctrl-warning { color: #ff0055; font-size: 20px; height: 30px; margin-top: 20px; text-shadow: 0 0 10px #ff0055; }
     </style>
 </head>
 <body>
+    <button id="mute-btn" onclick="toggleMute()" style="position: absolute; top: 20px; right: 20px; z-index: 1000; background: rgba(0,0,0,0.8); border: 2px solid white; color: white; padding: 10px; cursor: pointer; font-size: 24px; box-shadow: 4px 4px 0 #00ffff; transition: all 0.1s;">🔊</button>
 
     <div id="unlock-screen" class="anime-bg" onclick="unlockGame()">
         <h1 class="main-title" style="font-size: 120px;">ANIME CLASH</h1>
@@ -107,6 +122,9 @@
                 <button class="big-btn ui-btn" style="border-color:#00ffff; color:#00ffff; box-shadow: 6px 6px 0 rgba(0,255,255,0.5);" onclick="selectMode(true)">VS CPU</button>
                 <button class="big-btn ui-btn" style="border-color:#ff0055; color:#ff0055; box-shadow: 6px 6px 0 rgba(255,0,85,0.5);" onclick="selectMode(false)">VS PLAYER</button>
             </div>
+            <div id="settings-select" style="margin-top: 20px; text-align: center;">
+                <button class="big-btn ui-btn" style="border-color:#ffaa00; color:#ffaa00; box-shadow: 6px 6px 0 rgba(255,170,0,0.5); font-size: 24px; padding: 15px 30px;" onclick="openControls()">CONTROLS</button>
+            </div>
             <div id="time-select">
                 <span class="arrow ui-btn" onclick="adjustTime(-30)">&#9664;</span>
                 <span id="time-display">90 SEC</span>
@@ -123,6 +141,36 @@
         <div id="char-roster"></div>
         <div id="map-roster"></div>
         <button id="start-btn" class="big-btn ui-btn" onclick="launchMatch()">ENGAGE!</button>
+    </div>
+
+    <div id="controls-modal" class="anime-bg">
+        <h1 class="main-title" style="font-size: 60px;">CUSTOM CONTROLS</h1>
+        <div id="ctrl-warning"></div>
+        <div class="controls-grid">
+            <div class="controls-col" id="col-p1">
+                <h2 style="color: #00ffff;">PLAYER 1</h2>
+                <div class="ctrl-row"><span class="ctrl-lbl">LEFT</span><button class="ctrl-btn" id="btn-p1-left" onclick="listenKey('p1','left')">A</button></div>
+                <div class="ctrl-row"><span class="ctrl-lbl">RIGHT</span><button class="ctrl-btn" id="btn-p1-right" onclick="listenKey('p1','right')">D</button></div>
+                <div class="ctrl-row"><span class="ctrl-lbl">JUMP</span><button class="ctrl-btn" id="btn-p1-jump" onclick="listenKey('p1','jump')">W</button></div>
+                <div class="ctrl-row"><span class="ctrl-lbl">BLOCK</span><button class="ctrl-btn" id="btn-p1-block" onclick="listenKey('p1','block')">S</button></div>
+                <div class="ctrl-row"><span class="ctrl-lbl">ATTACK</span><button class="ctrl-btn" id="btn-p1-attack" onclick="listenKey('p1','attack')">SPACE</button></div>
+                <div class="ctrl-row"><span class="ctrl-lbl">DASH</span><button class="ctrl-btn" id="btn-p1-dash" onclick="listenKey('p1','dash')">Q</button></div>
+                <div class="ctrl-row"><span class="ctrl-lbl">ULTIMATE</span><button class="ctrl-btn" id="btn-p1-ultimate" onclick="listenKey('p1','ultimate')">E</button></div>
+                <button class="reset-btn" onclick="resetControls('p1')">RESET P1</button>
+            </div>
+            <div class="controls-col" id="col-p2">
+                <h2 style="color: #ff0055;">PLAYER 2</h2>
+                <div class="ctrl-row"><span class="ctrl-lbl">LEFT</span><button class="ctrl-btn" id="btn-p2-left" onclick="listenKey('p2','left')">ARROWLEFT</button></div>
+                <div class="ctrl-row"><span class="ctrl-lbl">RIGHT</span><button class="ctrl-btn" id="btn-p2-right" onclick="listenKey('p2','right')">ARROWRIGHT</button></div>
+                <div class="ctrl-row"><span class="ctrl-lbl">JUMP</span><button class="ctrl-btn" id="btn-p2-jump" onclick="listenKey('p2','jump')">ARROWUP</button></div>
+                <div class="ctrl-row"><span class="ctrl-lbl">BLOCK</span><button class="ctrl-btn" id="btn-p2-block" onclick="listenKey('p2','block')">ARROWDOWN</button></div>
+                <div class="ctrl-row"><span class="ctrl-lbl">ATTACK</span><button class="ctrl-btn" id="btn-p2-attack" onclick="listenKey('p2','attack')">ENTER</button></div>
+                <div class="ctrl-row"><span class="ctrl-lbl">DASH</span><button class="ctrl-btn" id="btn-p2-dash" onclick="listenKey('p2','dash')">/</button></div>
+                <div class="ctrl-row"><span class="ctrl-lbl">ULTIMATE</span><button class="ctrl-btn" id="btn-p2-ultimate" onclick="listenKey('p2','ultimate')">SHIFT</button></div>
+                <button class="reset-btn" onclick="resetControls('p2')">RESET P2</button>
+            </div>
+        </div>
+        <button class="big-btn ui-btn" style="margin-top: 30px; border-color:#fff" onclick="closeControls()">DONE</button>
     </div>
 
     <div id="game-container">
@@ -162,15 +210,20 @@
 
 <script>
     // --- COMPETITIVE PHYSICS CONSTANTS ---
-    const GRAVITY = 1.2;       
-    const MOVE_SPEED = 11;     
-    const JUMP_POWER = -22;    
-    const DASH_SPEED = 32;     
+    const GRAVITY = 0.95;       // Floatier anime-style
+    const TERMINAL_VELOCITY = 14; // Max fall speed
+    const MOVE_SPEED = 14;     
+    const MOVE_ACCEL = 1.8;    // Acceleration-based movement
+    const MOVE_DECEL = 0.7;   // Ground friction multiplier
+    const JUMP_POWER = -18;    
+    const DASH_SPEED = 38;     
     const DASH_DURATION = 6;   
-    const ATTACK_DURATION = 12; 
-    const MAX_HEALTH = 1000;    // Massive health for long matches!
-    const BASE_DMG = 20;        // Normal punch damage
-    const ULT_DMG = 200;        // Ultimate damage
+    const ATTACK_DURATION = 12; // Longer for windup/swing/recovery
+    const MAX_HEALTH = 1000;
+    const BASE_DMG = 20;
+    const ULT_DMG = 200;
+    const BEAM_GROW_SPEED = 28; // How fast beam extends outward
+    const BEAM_MAX_LENGTH = 1200;
     
     // --- DATABASE ---
     const CHARACTERS = {
@@ -254,7 +307,7 @@
     }
 
     function playUISound(type) {
-        if (!audioCtx) return; const now = audioCtx.currentTime;
+        if (!audioCtx || isMuted) return; const now = audioCtx.currentTime;
         const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain(); osc.connect(gain); gain.connect(audioCtx.destination);
         if (type === 'hover') {
             osc.type = 'sine'; osc.frequency.setValueAtTime(1500, now); osc.frequency.exponentialRampToValueAtTime(2000, now + 0.05);
@@ -266,7 +319,7 @@
     }
 
     function playSound(type) {
-        if (!audioCtx) return; const now = audioCtx.currentTime;
+        if (!audioCtx || isMuted) return; const now = audioCtx.currentTime;
         if (type === 'hit' || type === 'heavy_hit') {
             const noise = audioCtx.createBufferSource(); noise.buffer = noiseBuffer;
             const noiseFilter = audioCtx.createBiquadFilter(); noiseFilter.type = 'lowpass'; noiseFilter.frequency.value = type==='heavy_hit'? 500 : 1500;
@@ -291,7 +344,7 @@
     }
 
     function startMenuBGM() {
-        if (isMenuBgmPlaying || !audioCtx) return;
+        if (isMenuBgmPlaying || !audioCtx || isMuted) return;
         isMenuBgmPlaying = true; let noteTime = audioCtx.currentTime + 0.1;
         const notes = [32.70, 36.71, 41.20, 36.71]; let step = 0; // Dark brooding synth
         function schedule() {
@@ -310,7 +363,7 @@
     function stopMenuBGM() { isMenuBgmPlaying = false; menuBgmOscillators.forEach(o => { try{o.stop()}catch(e){} }); menuBgmOscillators = []; }
 
     function startBGM() {
-        if (isBgmPlaying || !audioCtx) return;
+        if (isBgmPlaying || !audioCtx || isMuted) return;
         isBgmPlaying = true; let noteTime = audioCtx.currentTime + 0.1;
         const notes = [41.20, 41.20, 49.00, 55.00, 41.20, 58.27, 49.00, 65.41]; let step = 0;
         function schedule() {
@@ -370,8 +423,8 @@
 
     function selectMode(cpuMode) {
         isVersusCPU = cpuMode;
-        if(isVersusCPU) { document.getElementById('p2-controls-text').innerHTML = "<strong>CPU:</strong> Intelligent AI Overlord"; goToMenu('diff'); } 
-        else { document.getElementById('p2-controls-text').innerHTML = "<strong>P2:</strong> Arrows (Move) | Up (Jump) | Enter (Attack) | Down (Block) | <span class='dash-txt'>/ (Dash)</span> | <span class='highlight2'>Shift (Ultimate)</span>"; goToMenu('char'); }
+        if(isVersusCPU) { updateControlsText(); goToMenu('diff'); } 
+        else { goToMenu('char'); updateControlsText(); }
     }
     function selectDiff(diff) { playUISound('click'); cpuDifficulty = diff; goToMenu('char'); }
     function selectCharacter(key, card) {
@@ -392,7 +445,23 @@
 
     // --- VISUAL EFFECTS ---
     const canvas = document.getElementById('gameCanvas'); const ctx = canvas.getContext('2d');
-    let screenShake = 0; let globalHitStop = 0; let impactFrames = 0; let animationId; 
+    let screenShake = 0; let globalHitStop = 0; let impactFrames = 0; let animationId;
+    let isMuted = localStorage.getItem('animeClash_muted') === 'true';
+
+    function toggleMute() {
+        isMuted = !isMuted;
+        localStorage.setItem('animeClash_muted', isMuted);
+        document.getElementById('mute-btn').innerText = isMuted ? '🔇' : '🔊';
+        if (isMuted) {
+            stopBGM(); stopMenuBGM();
+        } else {
+            if (document.getElementById('menu-screen').style.display !== 'none' || !matchStarted) startMenuBGM();
+            else if (matchStarted && !isGameOver) startBGM();
+            initAudio(); // Initialize audio context on first interaction if needed
+        }
+    }
+    window.addEventListener('DOMContentLoaded', () => { document.getElementById('mute-btn').innerText = isMuted ? '🔇' : '🔊'; });
+
     let player1, player2; let currentMapData; let matchTime = 60; let timerId; let isGameOver = false; let matchStarted = false;
     let cinematicTimer = 0; let cinematicTarget = null; let camZoom = 1; let camX = 0; let camY = 0;
 
@@ -425,74 +494,145 @@
     const sparks = [];
 
     class Projectile {
-        constructor({ position, velocity, charData, owner }) {
-            this.position = position; this.velocity = velocity; this.data = charData; this.owner = owner; this.markedForDeletion = false; this.rotation = 0;
+        constructor({ position, velocity, charData, owner, ownerRef }) {
+            this.position = position; this.velocity = velocity; this.data = charData; this.owner = owner; this.ownerRef = ownerRef;
+            this.markedForDeletion = false; this.rotation = 0;
+            this.direction = velocity.x > 0 ? 1 : -1;
+            this.originX = position.x; // Where beam starts
+            this.currentLength = 0; // Beam grows from 0
+            this.stoppedAt = null; // X position where beam stops on hit
+            this.isClashing = false; this.clashTimer = 0;
             let type = this.data.projType;
-            if(type === 'beam' || type === 'fist' || type === 'smash' || type === 'whip') { this.width = 250; this.height = 80; }
+            if(type === 'beam' || type === 'fist' || type === 'smash' || type === 'whip') { this.width = 60; this.height = 80; }
             else if(type === 'shuriken') { this.width = 120; this.height = 120; }
             else if(type === 'hollow' || type === 'explosion') { this.width = 200; this.height = 200; }
             else { this.width = 140; this.height = 140; } 
         }
         draw() {
-            ctx.save(); ctx.translate(this.position.x + this.width/2, this.position.y + this.height/2);
-            if (this.velocity.x < 0) ctx.scale(-1, 1); 
-            ctx.globalCompositeOperation = 'lighter'; ctx.shadowBlur = 40; ctx.shadowColor = this.data.projColor; ctx.fillStyle = this.data.projColor;
+            ctx.save(); 
             let type = this.data.projType;
-
-            if (type === 'beam') {
-                let bWidth = 1500; ctx.fillRect(-bWidth + this.width/2, -this.height/2 + 10, bWidth, this.height - 20);
-                ctx.fillStyle = 'white'; ctx.fillRect(-bWidth + this.width/2, -this.height/4 + 5, bWidth, this.height/2 - 10);
-                ctx.strokeStyle = 'white'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(-bWidth, 0);
-                for(let i=0; i<10; i++) ctx.lineTo(-bWidth + (i*150), (Math.random()-0.5)*100); ctx.stroke();
-                ctx.beginPath(); ctx.arc(this.width/2 - 10, 0, 50, 0, Math.PI * 2); ctx.fill();
-            } 
-            else if (type === 'shuriken') {
-                ctx.rotate(this.rotation); this.rotation += 0.8;
-                ctx.fillStyle = '#00ffff'; ctx.beginPath(); ctx.arc(0, 0, 35, 0, Math.PI*2); ctx.fill(); 
-                ctx.fillStyle = 'white'; ctx.beginPath(); ctx.arc(0, 0, 15, 0, Math.PI*2); ctx.fill();
-                ctx.fillStyle = 'rgba(0, 200, 255, 0.9)'; for(let i=0; i<4; i++){ ctx.rotate(Math.PI/2); ctx.beginPath(); ctx.moveTo(0, -20); ctx.lineTo(25, -90); ctx.lineTo(-25, -90); ctx.fill(); }
-            } 
-            else if (type === 'fire') {
-                let grad = ctx.createRadialGradient(15, 0, 5, 0, 0, 60); grad.addColorStop(0, 'white'); grad.addColorStop(0.3, '#ffaa00'); grad.addColorStop(1, '#ff0000');
-                ctx.fillStyle = grad; ctx.beginPath(); ctx.arc(0, 0, 60, -Math.PI/2, Math.PI/2); ctx.lineTo(-90, 0); ctx.fill();
-                for(let i=0; i<3; i++) particles.push(new Particle(this.position.x + this.width/2 - (this.velocity.x>0?60:-60), this.position.y+this.height/2 + (Math.random()-0.5)*60, -this.velocity.x*0.2, (Math.random()-0.5)*5, '#ff4400', 10));
+            let isBeamType = (type === 'beam' || type === 'fist' || type === 'smash' || type === 'whip');
+            
+            if (isBeamType) {
+                // Draw beam from origin to current tip
+                let tipX = this.originX + this.direction * this.currentLength;
+                let beamY = this.position.y + this.height / 2;
+                let startX = this.originX;
+                let len = this.currentLength;
+                
+                ctx.globalCompositeOperation = 'lighter'; ctx.shadowBlur = 40; ctx.shadowColor = this.data.projColor;
+                
+                if (type === 'beam') {
+                    let bH = this.height - 20;
+                    let drawX = this.direction === 1 ? startX : tipX;
+                    ctx.fillStyle = this.data.projColor;
+                    ctx.fillRect(drawX, beamY - bH/2, len, bH);
+                    ctx.fillStyle = 'white';
+                    ctx.fillRect(drawX, beamY - bH/4, len, bH/2);
+                    // Leading energy ball
+                    ctx.beginPath(); ctx.arc(tipX, beamY, 40 + Math.sin(Date.now()*0.05)*8, 0, Math.PI * 2); ctx.fill();
+                    // Energy crackle
+                    ctx.strokeStyle = 'white'; ctx.lineWidth = 2;
+                    for(let i=0; i<3; i++) { ctx.beginPath(); ctx.moveTo(tipX, beamY); ctx.lineTo(tipX + (Math.random()-0.5)*80, beamY + (Math.random()-0.5)*80); ctx.stroke(); }
+                    // Particles along beam
+                    if (Math.random() < 0.4) particles.push(new Particle(tipX, beamY, (Math.random()-0.5)*10, (Math.random()-0.5)*10, this.data.projColor, 8));
+                }
+                else if (type === 'fist') {
+                    let drawX = this.direction === 1 ? startX : tipX;
+                    ctx.globalCompositeOperation = 'source-over';
+                    ctx.fillStyle = this.data.skin || '#ffe0bd';
+                    ctx.fillRect(drawX, beamY - 25, len, 16); ctx.fillRect(drawX, beamY + 10, len, 16);
+                    ctx.fillStyle = '#f1c27d'; ctx.beginPath(); ctx.arc(tipX, beamY - 18, 35, 0, Math.PI*2); ctx.fill();
+                    ctx.beginPath(); ctx.arc(tipX, beamY + 18, 35, 0, Math.PI*2); ctx.fill();
+                }
+                else if (type === 'whip') {
+                    let drawX = this.direction === 1 ? startX : tipX;
+                    ctx.globalCompositeOperation = 'source-over'; ctx.fillStyle = '#cc0000';
+                    ctx.fillRect(drawX, beamY - 8, len, 16);
+                    let spikes = Math.floor(len / 60);
+                    for(let i=0; i<spikes; i++) { let sx = drawX + i*60; ctx.beginPath(); ctx.moveTo(sx, beamY-8); ctx.lineTo(sx-15, beamY-45); ctx.lineTo(sx+15, beamY-8); ctx.fill(); }
+                }
+                else if (type === 'smash') {
+                    let drawX = this.direction === 1 ? startX : tipX;
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+                    ctx.beginPath();
+                    ctx.moveTo(tipX, beamY - 60); ctx.lineTo(tipX, beamY + 60);
+                    ctx.lineTo(drawX, beamY + 20); ctx.lineTo(drawX, beamY - 20);
+                    ctx.closePath(); ctx.fill();
+                    ctx.strokeStyle = '#00ffcc'; ctx.lineWidth = 8; ctx.stroke();
+                }
+                
+                // Update hit box to cover the full beam
+                this.position.x = this.direction === 1 ? startX : tipX;
+                this.width = len;
             }
-            else if (type === 'slash') {
-                ctx.fillStyle = this.data.projColor; ctx.beginPath(); ctx.ellipse(10, 0, 50, 120, 0, -Math.PI/2, Math.PI/2); ctx.lineTo(-50, 0); ctx.fill();
-                ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.ellipse(15, 0, 20, 80, 0, -Math.PI/2, Math.PI/2); ctx.fill();
-            }
-            else if (type === 'fist') {
-                ctx.globalCompositeOperation = 'source-over'; 
-                ctx.fillStyle = this.data.skin; ctx.fillRect(-1500, -25, 1500 + this.width/2, 16); ctx.fillRect(-1500, 10, 1500 + this.width/2, 16); 
-                ctx.fillStyle = '#f1c27d'; ctx.beginPath(); ctx.arc(this.width/2, -18, 35, 0, Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(this.width/2, 18, 35, 0, Math.PI*2); ctx.fill();
-            }
-            else if (type === 'water') {
-                ctx.fillStyle = 'rgba(0, 150, 255, 0.9)'; ctx.beginPath(); ctx.arc(0, Math.sin(Date.now()*0.03)*30, 60, 0, Math.PI*2); ctx.fill();
-                ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(20, Math.sin(Date.now()*0.03)*30 - 15, 15, 0, Math.PI*2); ctx.fill(); 
-                particles.push(new Particle(this.position.x+this.width/2, this.position.y+this.height/2, -this.velocity.x*0.1, (Math.random()-0.5)*10, '#00ffff', 15));
-            }
-            else if (type === 'whip') {
-                ctx.globalCompositeOperation = 'source-over'; ctx.fillStyle = '#cc0000'; ctx.fillRect(-1500, -8, 1500 + this.width/2, 16);
-                for(let i=0; i<15; i++) { ctx.beginPath(); ctx.moveTo(-i*60, -8); ctx.lineTo(-i*60 - 15, -45); ctx.lineTo(-i*60 + 15, -8); ctx.fill(); } 
-            }
-            else if (type === 'hollow') {
-                ctx.fillStyle = '#330066'; ctx.beginPath(); ctx.arc(0, 0, 90, 0, Math.PI*2); ctx.fill();
-                ctx.fillStyle = '#9900ff'; ctx.beginPath(); ctx.arc(0, 0, 70, 0, Math.PI*2); ctx.fill(); ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(0, 0, 30, 0, Math.PI*2); ctx.fill(); 
-                ctx.strokeStyle = 'white'; ctx.lineWidth = 2; for(let i=0; i<5; i++) { ctx.beginPath(); ctx.moveTo((Math.random()-0.5)*200, (Math.random()-0.5)*200); ctx.lineTo(0,0); ctx.stroke(); }
-            }
-            else if (type === 'cleave') { ctx.fillStyle = 'rgba(255, 50, 50, 0.9)'; ctx.rotate(Math.PI/6); ctx.fillRect(-40, -120, 15, 240); ctx.rotate(-Math.PI/3); ctx.fillRect(-20, -120, 15, 240); }
-            else if (type === 'smash') {
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.9)'; ctx.beginPath(); ctx.arc(this.width/2, 0, 80, -Math.PI/2, Math.PI/2); ctx.lineTo(-this.width/2, -30); ctx.lineTo(-this.width/2, 30); ctx.fill();
-                ctx.strokeStyle = '#00ffcc'; ctx.lineWidth = 10; ctx.stroke();
-            }
-            else if (type === 'explosion') {
-                let s = 90 + Math.sin(Date.now()*0.08)*30;
-                ctx.fillStyle = '#ff4400'; ctx.beginPath(); ctx.arc(0, 0, s, 0, Math.PI*2); ctx.fill(); ctx.fillStyle = '#ffaa00'; ctx.beginPath(); ctx.arc(0, 0, s*0.6, 0, Math.PI*2); ctx.fill();
-                for(let i=0; i<3; i++) particles.push(new Particle(this.position.x+this.width/2, this.position.y+this.height/2, (Math.random()-0.5)*30, (Math.random()-0.5)*30, '#ffaa00', 20));
+            else {
+                // Non-beam projectiles - original rendering
+                ctx.translate(this.position.x + this.width/2, this.position.y + this.height/2);
+                if (this.velocity.x < 0) ctx.scale(-1, 1); 
+                ctx.globalCompositeOperation = 'lighter'; ctx.shadowBlur = 40; ctx.shadowColor = this.data.projColor; ctx.fillStyle = this.data.projColor;
+                
+                if (type === 'shuriken') {
+                    ctx.rotate(this.rotation); this.rotation += 0.3;
+                    ctx.fillStyle = '#00ffff'; ctx.beginPath(); ctx.arc(0, 0, 35, 0, Math.PI*2); ctx.fill(); 
+                    ctx.fillStyle = 'white'; ctx.beginPath(); ctx.arc(0, 0, 15, 0, Math.PI*2); ctx.fill();
+                    ctx.fillStyle = 'rgba(0, 200, 255, 0.9)'; for(let i=0; i<4; i++){ ctx.rotate(Math.PI/2); ctx.beginPath(); ctx.moveTo(0, -20); ctx.lineTo(25, -90); ctx.lineTo(-25, -90); ctx.fill(); }
+                } 
+                else if (type === 'fire') {
+                    let grad = ctx.createRadialGradient(15, 0, 5, 0, 0, 60); grad.addColorStop(0, 'white'); grad.addColorStop(0.3, '#ffaa00'); grad.addColorStop(1, '#ff0000');
+                    ctx.fillStyle = grad; ctx.beginPath(); ctx.arc(0, 0, 60, -Math.PI/2, Math.PI/2); ctx.lineTo(-90, 0); ctx.fill();
+                    for(let i=0; i<3; i++) particles.push(new Particle(this.position.x + this.width/2 - (this.velocity.x>0?60:-60), this.position.y+this.height/2 + (Math.random()-0.5)*60, -this.velocity.x*0.2, (Math.random()-0.5)*5, '#ff4400', 10));
+                }
+                else if (type === 'slash') {
+                    ctx.fillStyle = this.data.projColor; ctx.beginPath(); ctx.ellipse(10, 0, 50, 120, 0, -Math.PI/2, Math.PI/2); ctx.lineTo(-50, 0); ctx.fill();
+                    ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.ellipse(15, 0, 20, 80, 0, -Math.PI/2, Math.PI/2); ctx.fill();
+                }
+                else if (type === 'water') {
+                    ctx.fillStyle = 'rgba(0, 150, 255, 0.9)'; ctx.beginPath(); ctx.arc(0, Math.sin(Date.now()*0.03)*30, 60, 0, Math.PI*2); ctx.fill();
+                    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(20, Math.sin(Date.now()*0.03)*30 - 15, 15, 0, Math.PI*2); ctx.fill(); 
+                    particles.push(new Particle(this.position.x+this.width/2, this.position.y+this.height/2, -this.velocity.x*0.1, (Math.random()-0.5)*10, '#00ffff', 15));
+                }
+                else if (type === 'hollow') {
+                    ctx.fillStyle = '#330066'; ctx.beginPath(); ctx.arc(0, 0, 90, 0, Math.PI*2); ctx.fill();
+                    ctx.fillStyle = '#9900ff'; ctx.beginPath(); ctx.arc(0, 0, 70, 0, Math.PI*2); ctx.fill(); ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(0, 0, 30, 0, Math.PI*2); ctx.fill(); 
+                    ctx.strokeStyle = 'white'; ctx.lineWidth = 2; for(let i=0; i<5; i++) { ctx.beginPath(); ctx.moveTo((Math.random()-0.5)*200, (Math.random()-0.5)*200); ctx.lineTo(0,0); ctx.stroke(); }
+                }
+                else if (type === 'cleave') { ctx.fillStyle = 'rgba(255, 50, 50, 0.9)'; ctx.rotate(Math.PI/6); ctx.fillRect(-40, -120, 15, 240); ctx.rotate(-Math.PI/3); ctx.fillRect(-20, -120, 15, 240); }
+                else if (type === 'explosion') {
+                    let s = 90 + Math.sin(Date.now()*0.08)*30;
+                    ctx.fillStyle = '#ff4400'; ctx.beginPath(); ctx.arc(0, 0, s, 0, Math.PI*2); ctx.fill(); ctx.fillStyle = '#ffaa00'; ctx.beginPath(); ctx.arc(0, 0, s*0.6, 0, Math.PI*2); ctx.fill();
+                    for(let i=0; i<3; i++) particles.push(new Particle(this.position.x+this.width/2, this.position.y+this.height/2, (Math.random()-0.5)*30, (Math.random()-0.5)*30, '#ffaa00', 20));
+                }
             }
             ctx.restore();
         }
-        update() { this.draw(); this.position.x += this.velocity.x; if (this.position.x > canvas.width + 400 || this.position.x < -600) this.markedForDeletion = true; }
+        update() { 
+            let type = this.data.projType;
+            let isBeamType = (type === 'beam' || type === 'fist' || type === 'smash' || type === 'whip');
+            
+            if (isBeamType) {
+                // Grow beam outward
+                if (!this.isClashing && this.stoppedAt === null) {
+                    this.currentLength += BEAM_GROW_SPEED;
+                    if (this.currentLength > BEAM_MAX_LENGTH) {
+                        this.currentLength = BEAM_MAX_LENGTH;
+                        this.markedForDeletion = true;
+                    }
+                } else if (this.isClashing) {
+                    this.clashTimer++;
+                    if (this.clashTimer > 60) this.markedForDeletion = true;
+                } else if (this.stoppedAt !== null) {
+                    // Beam stopped on hit - shrink after a moment
+                    this.clashTimer++;
+                    if (this.clashTimer > 20) this.markedForDeletion = true;
+                }
+            } else {
+                // Non-beam: move at smoother speed
+                this.position.x += this.velocity.x; 
+                if (this.position.x > canvas.width + 400 || this.position.x < -600) this.markedForDeletion = true; 
+            }
+            this.draw();
+        }
     }
     const projectiles = [];
 
@@ -506,6 +646,14 @@
             this.isAttacking = false; this.attackFrames = 0; this.hasHit = false; 
             this.isShooting = false; this.shootAnimationTimer = 0; this.isBlocking = false; 
             this.jumps = 0; this.canAirDash = true; this.isDashing = false; this.dashTimer = 0; this.trailHistory = [];
+            this.isJumpHeld = false; // For variable jump height
+            
+            // Knockdown system
+            this.isKnockedDown = false; this.knockdownTimer = 0; this.tumbleRotation = 0;
+            // Landing squash
+            this.landSquash = 0; this.wasInAir = false;
+            // Hit vibration
+            this.vibrateTimer = 0;
             
             this.health = MAX_HEALTH; this.energy = 0; this.hitStunTimer = 0; this.hitFlashTimer = 0;
             this.comboCount = 0; this.comboTimer = 0;
@@ -523,13 +671,18 @@
                 let scaledDamage = damage * Math.pow(0.85, attacker.comboCount); 
                 if (scaledDamage < 2) scaledDamage = 2; // Minimum chip damage
                 
-                this.health -= scaledDamage; this.hitStunTimer = isHeavy ? 20 : 10; 
+                this.health -= scaledDamage; this.hitStunTimer = isHeavy ? 18 : 8; 
                 this.isAttacking = false; this.attackFrames = 0; this.isShooting = false; this.isDashing = false; this.addEnergy(10);
-                this.jumps = 2; 
+                this.jumps = 2; this.vibrateTimer = isHeavy ? 10 : 4;
                 
-                this.velocity.x = direction * (isHeavy ? 35 : 15); this.velocity.y = isHeavy ? -15 : -8; 
+                this.velocity.x = direction * (isHeavy ? 30 : 12); this.velocity.y = isHeavy ? -12 : -6; 
                 
-                if (isHazard) { playSound('hit'); globalHitStop = 6; this.velocity.y = -18; } 
+                // Knockdown on heavy hits
+                if (isHeavy && !isHazard) {
+                    this.isKnockedDown = true; this.knockdownTimer = 28; this.tumbleRotation = 0;
+                }
+                
+                if (isHazard) { playSound('hit'); globalHitStop = 6; this.velocity.y = -14; } 
                 else if (isHeavy) { playSound('heavy_hit'); screenShake = 30; globalHitStop = 10; impactFrames = 2; } 
                 else { playSound('hit'); globalHitStop = 3; }
                 
@@ -546,11 +699,29 @@
 
         drawSprite(x, y, facingOverride, alpha, isHitOverride) {
             ctx.save(); ctx.globalAlpha = alpha; 
-            let attackAnim = 0; if (this.isAttacking) { attackAnim = Math.sin(((ATTACK_DURATION - this.attackFrames) / ATTACK_DURATION) * Math.PI); }
+            // 3-phase attack: windup (0-0.3), swing (0.3-0.6), recovery (0.6-1.0)
+            let attackProgress = this.isAttacking ? (ATTACK_DURATION - this.attackFrames) / ATTACK_DURATION : 0;
+            let attackAnim = 0;
+            if (this.isAttacking) {
+                if (attackProgress < 0.3) attackAnim = -(attackProgress / 0.3) * 0.3; // Pull back
+                else if (attackProgress < 0.6) attackAnim = ((attackProgress - 0.3) / 0.3); // Swing forward
+                else attackAnim = 1.0 - ((attackProgress - 0.6) / 0.4); // Recovery
+            }
             
-            ctx.translate(x + this.width/2 + (attackAnim * 20 * facingOverride), y);
+            // Vibration on hitstun
+            let vibeX = 0, vibeY = 0;
+            if (this.vibrateTimer > 0 && alpha === 1) { vibeX = (Math.random() - 0.5) * 6; vibeY = (Math.random() - 0.5) * 4; }
+            
+            // Landing squash
+            let squashX = 1, squashY = 1;
+            if (this.landSquash > 0 && alpha === 1) { squashY = 1 - this.landSquash * 0.15; squashX = 1 + this.landSquash * 0.1; }
+            
+            ctx.translate(x + this.width/2 + (Math.max(0, attackAnim) * 25 * facingOverride) + vibeX, y + vibeY);
             if (facingOverride === -1) ctx.scale(-1, 1); 
-            if (this.isAttacking && this.data.type !== 'stretchy') { ctx.rotate(attackAnim * 0.25); }
+            // Knockdown tumble rotation
+            if (this.isKnockedDown && alpha === 1) { ctx.rotate(this.tumbleRotation); }
+            else if (this.isAttacking && this.data.type !== 'stretchy') { ctx.rotate(Math.max(0, attackAnim) * 0.2); }
+            ctx.scale(squashX, squashY);
             ctx.translate(-this.width/2, 0); 
             
             let skin = isHitOverride ? 'white' : this.data.skin; let c1 = isHitOverride ? 'white' : this.data.color; let c2 = isHitOverride ? 'white' : this.data.sec; let hair = isHitOverride ? 'white' : this.data.hair;
@@ -642,7 +813,8 @@
 
         draw() {
             this.trailHistory.forEach((trail, index) => { const alpha = (index + 1) / this.trailHistory.length * 0.4; this.drawSprite(trail.x, trail.y, trail.facing, alpha, false); });
-            this.drawSprite(this.position.x, this.position.y, this.facing, 1, this.hitFlashTimer > 0);
+            let drawAlpha = this.isKnockedDown && this.knockdownTimer < 15 ? 0.5 + Math.sin(Date.now() * 0.03) * 0.3 : 1;
+            this.drawSprite(this.position.x, this.position.y, this.facing, drawAlpha, this.hitFlashTimer > 0);
             if(this.hitStunTimer > 0) { ctx.fillStyle = `rgba(255, 0, 0, 0.3)`; ctx.fillRect(this.position.x, this.position.y, this.width, this.height); }
         }
 
@@ -686,8 +858,41 @@
 
             if (onGround) { 
                 this.jumps = 0; this.canAirDash = true; 
-                if(!this.isDashing) this.velocity.x *= 0.8; 
-            } else { if(!this.isDashing) { this.velocity.y += GRAVITY; this.velocity.x *= 0.95; } }
+                if(!this.isDashing) this.velocity.x *= MOVE_DECEL; 
+                // Landing effects
+                if (this.wasInAir) {
+                    this.landSquash = 1.0;
+                    for(let i = 0; i < 6; i++) particles.push(new Particle(this.position.x + 25, this.position.y + this.height, (Math.random()-0.5)*8, -Math.random()*4, '#aa9977', 12));
+                    // Knockdown bounce
+                    if (this.isKnockedDown && Math.abs(this.velocity.x) > 3) {
+                        this.velocity.y = -6; this.velocity.x *= 0.5;
+                        for(let i = 0; i < 8; i++) particles.push(new Particle(this.position.x + 25, this.position.y + this.height, (Math.random()-0.5)*12, -Math.random()*8, '#ffaa44', 15));
+                        screenShake = 8; playSound('hit');
+                    }
+                }
+                this.wasInAir = false;
+            } else { 
+                this.wasInAir = true;
+                if(!this.isDashing) { 
+                    this.velocity.y += GRAVITY; 
+                    if (this.velocity.y > TERMINAL_VELOCITY) this.velocity.y = TERMINAL_VELOCITY;
+                    this.velocity.x *= 0.97; 
+                    // Variable jump height - cut jump short if not held
+                    if (!this.isJumpHeld && this.velocity.y < -4) this.velocity.y *= 0.85;
+                } 
+            }
+            
+            // Knockdown timer & tumble
+            if (this.isKnockedDown) {
+                this.tumbleRotation += this.facing * 0.25;
+                this.knockdownTimer--;
+                if (this.knockdownTimer <= 0 && onGround) { this.isKnockedDown = false; this.tumbleRotation = 0; }
+            }
+            // Landing squash decay
+            if (this.landSquash > 0) this.landSquash *= 0.75;
+            if (this.landSquash < 0.05) this.landSquash = 0;
+            // Vibrate decay
+            if (this.vibrateTimer > 0) this.vibrateTimer--;
 
             if (this.position.x <= 0) { this.position.x = 0; if (Math.abs(this.velocity.x) > 10 && this.hitStunTimer > 0) { this.velocity.x *= -0.6; screenShake = 15; playSound('hit'); } }
             if (this.position.x + this.width >= canvas.width) { this.position.x = canvas.width - this.width; if (Math.abs(this.velocity.x) > 10 && this.hitStunTimer > 0) { this.velocity.x *= -0.6; screenShake = 15; playSound('hit'); } }
@@ -696,23 +901,32 @@
             if (this.hitStunTimer > 0) this.hitStunTimer--; if (this.hitFlashTimer > 0) this.hitFlashTimer--;
         }
 
-        attack() { if (!this.isAttacking && !this.isShooting && !this.isBlocking && !this.isDashing && this.hitStunTimer === 0 && matchStarted) { this.isAttacking = true; this.attackFrames = ATTACK_DURATION; this.hasHit = false; playSound(this.data.meleeSfx); } }
+        attack() { if (!this.isAttacking && !this.isShooting && !this.isBlocking && !this.isDashing && this.hitStunTimer === 0 && !this.isKnockedDown && matchStarted) { this.isAttacking = true; this.attackFrames = ATTACK_DURATION; this.hasHit = false; playSound(this.data.meleeSfx); } }
         fireBeam() {
-            if (!this.isShooting && !this.isAttacking && !this.isBlocking && !this.isDashing && this.hitStunTimer === 0 && this.energy >= 100 && matchStarted) {
-                this.isShooting = true; this.shootAnimationTimer = 20; this.energy = 0; document.getElementById(this.isP1 ? 'p1-energy' : 'p2-energy').style.width = '0%';
-                cinematicTimer = 40; cinematicTarget = this; playSound('charge'); 
+            if (!this.isShooting && !this.isAttacking && !this.isBlocking && !this.isDashing && this.hitStunTimer === 0 && !this.isKnockedDown && this.energy >= 100 && matchStarted) {
+                this.isShooting = true; this.shootAnimationTimer = 18; this.energy = 0; document.getElementById(this.isP1 ? 'p1-energy' : 'p2-energy').style.width = '0%';
+                cinematicTimer = 25; cinematicTarget = this; playSound('charge'); 
             }
         }
-        jump() { if (this.hitStunTimer === 0 && !this.isShooting && !this.isBlocking && matchStarted) { if (this.jumps < 2) { this.velocity.y = JUMP_POWER; this.jumps++; } } }
+        jump() { if (this.hitStunTimer === 0 && !this.isShooting && !this.isBlocking && !this.isKnockedDown && matchStarted) { if (this.jumps < 2) { this.velocity.y = JUMP_POWER; this.jumps++; this.isJumpHeld = true; for(let i=0;i<4;i++) particles.push(new Particle(this.position.x+25, this.position.y+this.height, (Math.random()-0.5)*6, Math.random()*3, '#aaa', 10)); } } }
         dash() {
-            if (!this.isDashing && !this.isShooting && !this.isAttacking && !this.isBlocking && this.hitStunTimer === 0 && matchStarted) {
+            if (!this.isDashing && !this.isShooting && !this.isAttacking && !this.isBlocking && this.hitStunTimer === 0 && !this.isKnockedDown && matchStarted) {
                 if (this.position.y + this.height < canvas.height - 55) { if (this.canAirDash) { this.isDashing = true; this.dashTimer = DASH_DURATION; this.canAirDash = false; playSound('dash'); }
                 } else { this.isDashing = true; this.dashTimer = DASH_DURATION; playSound('dash'); }
             }
         }
     }
 
-    const keys = { a: { pressed: false }, d: { pressed: false }, ArrowLeft: { pressed: false }, ArrowRight: { pressed: false } };
+    // --- INPUT & STATE ---
+    const keys = { p1Left: false, p1Right: false, p2Left: false, p2Right: false };
+    const defaultControls = {
+        p1: { left: 'a', right: 'd', jump: 'w', block: 's', attack: ' ', dash: 'q', ultimate: 'e' },
+        p2: { left: 'ArrowLeft', right: 'ArrowRight', jump: 'ArrowUp', block: 'ArrowDown', attack: 'Enter', dash: '/', ultimate: 'Shift' }
+    };
+    let controls = JSON.parse(localStorage.getItem('animeClash_controls'));
+    if (!controls || !controls.p1 || !controls.p2) controls = JSON.parse(JSON.stringify(defaultControls));
+    
+    let listeningKey = null; // {player: 'p1', action: 'jump'}
     function collisionDetection(box1, box2Obj) { return ( box1.position.x + box1.width >= box2Obj.position.x && box1.position.x <= box2Obj.position.x + box2Obj.width && box1.position.y + box1.height >= box2Obj.position.y && box1.position.y <= box2Obj.position.y + box2Obj.height ); }
 
     function decreaseTimer() { if (time > 0 && !isGameOver && matchStarted) { timerId = setTimeout(decreaseTimer, 1000); time--; document.getElementById('timer').innerHTML = time; } if (time === 0 && !isGameOver && matchStarted) determineWinner(); }
@@ -824,11 +1038,12 @@
             cinematicTimer--;
             if (cinematicTimer === 0) {
                 playSound(cinematicTarget.data.sfx); screenShake = 30; impactFrames = 3; const pType = cinematicTarget.data.projType;
-                const projX = cinematicTarget.facing === 1 ? cinematicTarget.position.x + 60 : cinematicTarget.position.x - (pType==='beam'||pType==='fist'||pType==='whip'||pType==='smash' ? 100 : 80);
-                projectiles.push(new Projectile({ position: { x: projX, y: cinematicTarget.position.y + 20 }, velocity: { x: cinematicTarget.facing * 40, y: 0 }, charData: cinematicTarget.data, owner: cinematicTarget.charKey }));
+                let isBeamLike = (pType==='beam'||pType==='fist'||pType==='whip'||pType==='smash');
+                const projX = cinematicTarget.facing === 1 ? cinematicTarget.position.x + 60 : cinematicTarget.position.x - 10;
+                projectiles.push(new Projectile({ position: { x: projX, y: cinematicTarget.position.y + 20 }, velocity: { x: cinematicTarget.facing * (isBeamLike ? 1 : 20), y: 0 }, charData: cinematicTarget.data, owner: cinematicTarget.charKey, ownerRef: cinematicTarget }));
             }
         }
-        camZoom += (targetZoom - camZoom) * 0.2; camX += (targetCamX - camX) * 0.2; camY += (targetCamY - camY) * 0.2;
+        camZoom += (targetZoom - camZoom) * 0.1; camX += (targetCamX - camX) * 0.1; camY += (targetCamY - camY) * 0.1;
         ctx.translate(canvas.width / 2, canvas.height / 2); ctx.scale(camZoom, camZoom); ctx.translate(-canvas.width / 2, -canvas.height / 2); ctx.translate(camX, camY);
 
         drawMap();
@@ -854,26 +1069,115 @@
         player2.update();
 
         if (matchStarted) {
-            if (player1.hitStunTimer === 0 && !player1.isShooting && !player1.isBlocking && !player1.isDashing) {
-                if (keys.a.pressed && player1.lastKey === 'a') { player1.velocity.x = -MOVE_SPEED; player1.facing = -1; } 
-                else if (keys.d.pressed && player1.lastKey === 'd') { player1.velocity.x = MOVE_SPEED; player1.facing = 1; }
+            // Acceleration-based movement
+            if (player1.hitStunTimer === 0 && !player1.isShooting && !player1.isBlocking && !player1.isDashing && !player1.isKnockedDown) {
+                if (keys.p1Left && player1.lastKey === 'left') { player1.velocity.x += (-MOVE_SPEED - player1.velocity.x) * 0.45; player1.facing = -1; } 
+                else if (keys.p1Right && player1.lastKey === 'right') { player1.velocity.x += (MOVE_SPEED - player1.velocity.x) * 0.45; player1.facing = 1; }
             }
-            if (!isVersusCPU && player2.hitStunTimer === 0 && !player2.isShooting && !player2.isBlocking && !player2.isDashing) {
-                if (keys.ArrowLeft.pressed && player2.lastKey === 'ArrowLeft') { player2.velocity.x = -MOVE_SPEED; player2.facing = -1; } 
-                else if (keys.ArrowRight.pressed && player2.lastKey === 'ArrowRight') { player2.velocity.x = MOVE_SPEED; player2.facing = 1; }
+            if (!isVersusCPU && player2.hitStunTimer === 0 && !player2.isShooting && !player2.isBlocking && !player2.isDashing && !player2.isKnockedDown) {
+                if (keys.p2Left && player2.lastKey === 'left') { player2.velocity.x += (-MOVE_SPEED - player2.velocity.x) * 0.45; player2.facing = -1; } 
+                else if (keys.p2Right && player2.lastKey === 'right') { player2.velocity.x += (MOVE_SPEED - player2.velocity.x) * 0.45; player2.facing = 1; }
             }
 
-            if (player1.isAttacking && player1.attackFrames === ATTACK_DURATION - 2 && !player1.hasHit && collisionDetection(player1.attackBox, player2)) {
+            // Attack hit detection - swing phase hits (attackProgress between 0.3 and 0.6)
+            let p1Progress = player1.isAttacking ? (ATTACK_DURATION - player1.attackFrames) / ATTACK_DURATION : 0;
+            if (player1.isAttacking && p1Progress >= 0.35 && p1Progress <= 0.55 && !player1.hasHit && collisionDetection(player1.attackBox, player2)) {
                 player1.hasHit = true; player2.takeHit(BASE_DMG, player1.facing); if(!player2.isBlocking) player1.addEnergy(15); if (player2.health <= 0) determineWinner();
             }
-            if (player2.isAttacking && player2.attackFrames === ATTACK_DURATION - 2 && !player2.hasHit && collisionDetection(player2.attackBox, player1)) {
+            let p2Progress = player2.isAttacking ? (ATTACK_DURATION - player2.attackFrames) / ATTACK_DURATION : 0;
+            if (player2.isAttacking && p2Progress >= 0.35 && p2Progress <= 0.55 && !player2.hasHit && collisionDetection(player2.attackBox, player1)) {
                 player2.hasHit = true; player1.takeHit(BASE_DMG, player2.facing); if(!player1.isBlocking) player2.addEnergy(15); if (player1.health <= 0) determineWinner();
             }
 
+            // --- Beam collision system ---
+            // Check beam-vs-beam clash
+            for (let i = 0; i < projectiles.length; i++) {
+                for (let j = i + 1; j < projectiles.length; j++) {
+                    let pA = projectiles[i], pB = projectiles[j];
+                    if (pA.owner === pB.owner || pA.isClashing || pB.isClashing) continue;
+                    let typeA = pA.data.projType, typeB = pB.data.projType;
+                    let beamTypesA = ['beam','fist','smash','whip'], beamTypesB = ['beam','fist','smash','whip'];
+                    let aIsBeam = beamTypesA.includes(typeA), bIsBeam = beamTypesB.includes(typeB);
+                    // Both must be beam-type and heading toward each other
+                    if (aIsBeam && bIsBeam && pA.direction !== pB.direction) {
+                        let tipA = pA.originX + pA.direction * pA.currentLength;
+                        let tipB = pB.originX + pB.direction * pB.currentLength;
+                        if ((pA.direction === 1 && tipA >= tipB) || (pA.direction === -1 && tipA <= tipB)) {
+                            // CLASH!
+                            pA.isClashing = true; pB.isClashing = true;
+                            let clashX = (tipA + tipB) / 2;
+                            let clashY = (pA.position.y + pA.height/2 + pB.position.y + pB.height/2) / 2;
+                            // Stop beams at clash point
+                            pA.currentLength = Math.abs(clashX - pA.originX);
+                            pB.currentLength = Math.abs(clashX - pB.originX);
+                            screenShake = 40; globalHitStop = 15; impactFrames = 4;
+                            playSound('heavy_hit');
+                            // Dramatic clash explosion
+                            for(let k=0; k<40; k++) particles.push(new Particle(clashX, clashY, (Math.random()-0.5)*40, (Math.random()-0.5)*40, k%2===0 ? pA.data.projColor : pB.data.projColor, 25));
+                            ripples.push(new Ripple(clashX, clashY, '#ffffff'));
+                            ripples.push(new Ripple(clashX, clashY, pA.data.projColor));
+                            sparks.push(new HitSpark(clashX, clashY, '#ffffff'));
+                        }
+                    }
+                }
+            }
+            // Draw beam clash effects
+            projectiles.forEach(proj => {
+                if (proj.isClashing && proj.clashTimer < 60) {
+                    let tipX = proj.originX + proj.direction * proj.currentLength;
+                    let tipY = proj.position.y + proj.height / 2;
+                    let pulse = Math.sin(proj.clashTimer * 0.3) * 20 + 50;
+                    ctx.save(); ctx.globalCompositeOperation = 'lighter';
+                    ctx.fillStyle = 'white'; ctx.beginPath(); ctx.arc(tipX, tipY, pulse, 0, Math.PI*2); ctx.fill();
+                    ctx.fillStyle = proj.data.projColor; ctx.beginPath(); ctx.arc(tipX, tipY, pulse * 0.6, 0, Math.PI*2); ctx.fill();
+                    // Lightning arcs
+                    ctx.strokeStyle = 'white'; ctx.lineWidth = 3;
+                    for(let i=0; i<4; i++) { ctx.beginPath(); ctx.moveTo(tipX, tipY); ctx.lineTo(tipX+(Math.random()-0.5)*150, tipY+(Math.random()-0.5)*150); ctx.stroke(); }
+                    if (Math.random()<0.5) particles.push(new Particle(tipX, tipY, (Math.random()-0.5)*20, (Math.random()-0.5)*20, proj.data.projColor, 10));
+                    ctx.restore();
+                }
+            });
+
+            // Projectile-vs-player collision
             projectiles.forEach((proj, index) => {
                 proj.update();
-                if (proj.owner === player1.charKey && collisionDetection(proj, player2)) { player2.takeHit(ULT_DMG, 1, true); proj.markedForDeletion = true; if (player2.health <= 0) determineWinner(); }
-                if (proj.owner === player2.charKey && collisionDetection(proj, player1)) { player1.takeHit(ULT_DMG, -1, true); proj.markedForDeletion = true; if (player1.health <= 0) determineWinner(); }
+                let type = proj.data.projType;
+                let isBeamType = (type==='beam'||type==='fist'||type==='smash'||type==='whip');
+                
+                if (!proj.isClashing) {
+                    if (proj.ownerRef === player1 && collisionDetection(proj, player2)) {
+                        if (isBeamType && proj.stoppedAt === null) {
+                            // Stop beam at opponent
+                            proj.stoppedAt = player2.position.x;
+                            proj.currentLength = Math.abs(player2.position.x - proj.originX) + 25;
+                        }
+                        if (!proj.hitDone) {
+                            proj.hitDone = true;
+                            player2.takeHit(ULT_DMG, 1, true);
+                            // Screen flash
+                            ctx.save(); ctx.globalCompositeOperation = 'lighter';
+                            ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.fillRect(-canvas.width,-canvas.height,canvas.width*3,canvas.height*3);
+                            ctx.restore();
+                            if (!isBeamType) proj.markedForDeletion = true;
+                            if (player2.health <= 0) determineWinner();
+                        }
+                    }
+                    if (proj.ownerRef === player2 && collisionDetection(proj, player1)) {
+                        if (isBeamType && proj.stoppedAt === null) {
+                            proj.stoppedAt = player1.position.x;
+                            proj.currentLength = Math.abs(player1.position.x - proj.originX) + 25;
+                        }
+                        if (!proj.hitDone) {
+                            proj.hitDone = true;
+                            player1.takeHit(ULT_DMG, -1, true);
+                            ctx.save(); ctx.globalCompositeOperation = 'lighter';
+                            ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.fillRect(-canvas.width,-canvas.height,canvas.width*3,canvas.height*3);
+                            ctx.restore();
+                            if (!isBeamType) proj.markedForDeletion = true;
+                            if (player1.health <= 0) determineWinner();
+                        }
+                    }
+                }
                 if (proj.markedForDeletion) projectiles.splice(index, 1);
             });
         }
@@ -884,33 +1188,90 @@
         ctx.restore(); 
     }
 
-    window.addEventListener('keydown', (event) => {
-        if(isGameOver) return;
-        switch (event.key) {
-            case 'd': keys.d.pressed = true; player1.lastKey = 'd'; break;
-            case 'a': keys.a.pressed = true; player1.lastKey = 'a'; break;
-            case 'w': player1.jump(); break; 
-            case ' ': player1.attack(); break;
-            case 'e': player1.fireBeam(); break; 
-            case 's': player1.isBlocking = true; break;
-            case 'q': player1.dash(); break; 
+    // --- CONTROLS UI & BINDING ---
+    function formatKey(key) { return key === ' ' ? 'SPACE' : key.toUpperCase(); }
+    function updateControlsText() {
+        document.getElementById('controls-hint').innerHTML = `
+            <strong>P1:</strong> ${formatKey(controls.p1.left)}/${formatKey(controls.p1.right)} (Move) | ${formatKey(controls.p1.jump)} (Jump) | ${formatKey(controls.p1.attack)} (Attack) | ${formatKey(controls.p1.block)} (Block) | <span class="dash-txt">${formatKey(controls.p1.dash)} (Dash)</span> | <span class="highlight">${formatKey(controls.p1.ultimate)} (Ultimate)</span> <br>
+            <span id="p2-controls-text"><strong>P2:</strong> ${formatKey(controls.p2.left)}/${formatKey(controls.p2.right)} (Move) | ${formatKey(controls.p2.jump)} (Jump) | ${formatKey(controls.p2.attack)} (Attack) | ${formatKey(controls.p2.block)} (Block) | <span class="dash-txt">${formatKey(controls.p2.dash)} (Dash)</span> | <span class="highlight2">${formatKey(controls.p2.ultimate)} (Ultimate)</span></span>
+        `;
+        if (isVersusCPU) document.getElementById('p2-controls-text').innerHTML = `<strong>CPU:</strong> Intelligent AI Overlord`;
+    }
+    
+    function openControls() {
+        playUISound('click'); document.getElementById('menu-screen').style.display = 'none'; document.getElementById('controls-modal').style.display = 'flex';
+        document.getElementById('col-p2').style.opacity = isVersusCPU ? '0.3' : '1'; document.getElementById('col-p2').style.pointerEvents = isVersusCPU ? 'none' : 'auto';
+        updateControlsUI();
+    }
+    function closeControls() { playUISound('click'); document.getElementById('controls-modal').style.display = 'none'; document.getElementById('menu-screen').style.display = 'flex'; updateControlsText(); }
+    function updateControlsUI() {
+        ['p1', 'p2'].forEach(p => { Object.keys(controls[p]).forEach(act => { const btn = document.getElementById(`btn-${p}-${act}`); if(btn) btn.innerText = formatKey(controls[p][act]); }); });
+    }
+    function resetControls(p) { playUISound('click'); controls[p] = JSON.parse(JSON.stringify(defaultControls[p])); saveControls(); updateControlsUI(); document.getElementById('ctrl-warning').innerText = ""; }
+    function saveControls() { localStorage.setItem('animeClash_controls', JSON.stringify(controls)); }
+    
+    function listenKey(p, action) {
+        if(listeningKey) return; playUISound('click'); const btn = document.getElementById(`btn-${p}-${action}`);
+        btn.innerText = "PRESS KEY..."; btn.classList.add('listening'); listeningKey = {player: p, action: action}; document.getElementById('ctrl-warning').innerText = "";
+    }
 
-            case 'ArrowRight': if(!isVersusCPU) {keys.ArrowRight.pressed = true; player2.lastKey = 'ArrowRight';} break;
-            case 'ArrowLeft': if(!isVersusCPU) {keys.ArrowLeft.pressed = true; player2.lastKey = 'ArrowLeft';} break;
-            case 'ArrowUp': if(!isVersusCPU) player2.jump(); break;
-            case 'Enter': if(!isVersusCPU) player2.attack(); break;
-            case 'Shift': if(!isVersusCPU) player2.fireBeam(); break; 
-            case 'ArrowDown': if(!isVersusCPU) player2.isBlocking = true; break;
-            case '/': if(!isVersusCPU) player2.dash(); break; 
+    window.addEventListener('keydown', (event) => {
+        if (listeningKey) {
+            event.preventDefault(); const key = event.key === ' ' ? ' ' : (event.key.length === 1 ? event.key.toLowerCase() : event.key);
+            if (key !== 'Escape') {
+                let conflict = null;
+                ['p1', 'p2'].forEach(p => { Object.keys(controls[p]).forEach(act => { if(controls[p][act] === key) conflict = {p, act}; }); });
+                if (conflict) { controls[conflict.p][conflict.act] = controls[listeningKey.player][listeningKey.action]; document.getElementById('ctrl-warning').innerText = `${formatKey(key)} was mapped to ${conflict.p.toUpperCase()} ${conflict.act.toUpperCase()}. Keys swapped!`; }
+                controls[listeningKey.player][listeningKey.action] = key; saveControls();
+            }
+            document.getElementById(`btn-${listeningKey.player}-${listeningKey.action}`).classList.remove('listening');
+            listeningKey = null; updateControlsUI(); return;
+        }
+
+        if(isGameOver) return;
+        const key = event.key === ' ' ? ' ' : (event.key.length === 1 ? event.key.toLowerCase() : event.key);
+        
+        // P1 Controls
+        if (key === controls.p1.right) { keys.p1Right = true; player1.lastKey = 'right'; }
+        if (key === controls.p1.left) { keys.p1Left = true; player1.lastKey = 'left'; }
+        if (key === controls.p1.jump) player1.jump();
+        if (key === controls.p1.attack) player1.attack();
+        if (key === controls.p1.ultimate) player1.fireBeam();
+        if (key === controls.p1.block) player1.isBlocking = true;
+        if (key === controls.p1.dash) player1.dash();
+
+        // P2 Controls
+        if (!isVersusCPU) {
+            if (key === controls.p2.right) { keys.p2Right = true; player2.lastKey = 'right'; }
+            if (key === controls.p2.left) { keys.p2Left = true; player2.lastKey = 'left'; }
+            if (key === controls.p2.jump) player2.jump();
+            if (key === controls.p2.attack) player2.attack();
+            if (key === controls.p2.ultimate) player2.fireBeam();
+            if (key === controls.p2.block) player2.isBlocking = true;
+            if (key === controls.p2.dash) player2.dash();
         }
     });
 
     window.addEventListener('keyup', (event) => {
-        switch (event.key) {
-            case 'd': keys.d.pressed = false; break; case 'a': keys.a.pressed = false; break; case 's': player1.isBlocking = false; break;
-            case 'ArrowRight': keys.ArrowRight.pressed = false; break; case 'ArrowLeft': keys.ArrowLeft.pressed = false; break; case 'ArrowDown': if(!isVersusCPU) player2.isBlocking = false; break;
+        if (listeningKey) return;
+        const key = event.key === ' ' ? ' ' : (event.key.length === 1 ? event.key.toLowerCase() : event.key);
+        if (key === 'm') toggleMute();
+        
+        if (key === controls.p1.right) keys.p1Right = false;
+        if (key === controls.p1.left) keys.p1Left = false;
+        if (key === controls.p1.block) player1.isBlocking = false;
+        if (key === controls.p1.jump && player1) player1.isJumpHeld = false;
+
+        if (!isVersusCPU) {
+            if (key === controls.p2.right) keys.p2Right = false;
+            if (key === controls.p2.left) keys.p2Left = false;
+            if (key === controls.p2.block) player2.isBlocking = false;
+            if (key === controls.p2.jump && player2) player2.isJumpHeld = false;
         }
     });
+    
+    // Initialize controls on load
+    window.addEventListener('DOMContentLoaded', () => { updateControlsText(); });
 </script>
 </body>
 </html>
