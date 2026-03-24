@@ -588,6 +588,38 @@
             margin-top: 20px;
             text-shadow: 0 0 10px #ff0055;
         }
+
+        #pause-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 5000;
+            backdrop-filter: blur(8px);
+        }
+
+        .pause-content {
+            text-align: center;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
     </style>
 </head>
 
@@ -639,6 +671,18 @@
         <div id="char-roster"></div>
         <div id="map-roster"></div>
         <button id="start-btn" class="big-btn ui-btn" onclick="launchMatch()">ENGAGE!</button>
+    </div>
+
+    <div id="pause-overlay">
+        <div class="pause-content">
+            <h1 class="main-title" style="font-size: 100px;">PAUSED</h1>
+            <div style="margin-top: 40px; display: flex; flex-direction: column; gap: 20px;">
+                <button class="big-btn ui-btn" style="border-color:#00ffff; color:#00ffff;"
+                    onclick="togglePause()">RESUME (ESC)</button>
+                <button class="big-btn ui-btn" style="border-color:#ff0055; color:#ff0055;" onclick="quitToMenu()">QUIT
+                    TO MENU</button>
+            </div>
+        </div>
     </div>
 
     <div id="controls-modal" class="anime-bg">
@@ -733,19 +777,19 @@
 
     <script>
         // --- COMPETITIVE PHYSICS CONSTANTS ---
-        const GRAVITY = 1.0;       // Floatier anime-style
-        const TERMINAL_VELOCITY = 14; // Max fall speed
-        const MOVE_SPEED = 14.5;
-        const MOVE_ACCEL = 1.8;    // Acceleration-based movement
-        const MOVE_DECEL = 0.7;   // Ground friction multiplier
-        const JUMP_POWER = -18;
-        const DASH_SPEED = 40;
+        const GRAVITY = 1.1;
+        const TERMINAL_VELOCITY = 14;
+        const MOVE_SPEED = 15;
+        const MOVE_ACCEL = 1.6;
+        const MOVE_DECEL = 0.7;
+        const JUMP_POWER = -19;
+        const DASH_SPEED = 42;
         const DASH_DURATION = 6;
-        const ATTACK_DURATION = 12; // Longer for windup/swing/recovery
+        const ATTACK_DURATION = 12;
         const MAX_HEALTH = 1000;
         const BASE_DMG = 20;
-        const ULT_DMG = 200;
-        const BEAM_GROW_SPEED = 36; // How fast beam extends outward
+        const ULT_DMG = 250;
+        const BEAM_GROW_SPEED = 25;
         const BEAM_MAX_LENGTH = 1200;
 
         // --- DATABASE ---
@@ -972,6 +1016,7 @@
         const canvas = document.getElementById('gameCanvas'); const ctx = canvas.getContext('2d');
         let screenShake = 0; let globalHitStop = 0; let impactFrames = 0; let animationId;
         let isMuted = localStorage.getItem('animeClash_muted') === 'true';
+        let isPaused = false;
 
         function toggleMute() {
             isMuted = !isMuted;
@@ -1438,6 +1483,7 @@
             attack() { if (!this.isAttacking && !this.isShooting && !this.isBlocking && !this.isDashing && this.hitStunTimer === 0 && !this.isKnockedDown && matchStarted) { this.isAttacking = true; this.attackFrames = ATTACK_DURATION; this.hasHit = false; playSound(this.data.meleeSfx); } }
             fireBeam() {
                 if (!this.isShooting && !this.isAttacking && !this.isBlocking && !this.isDashing && this.hitStunTimer === 0 && !this.isKnockedDown && this.energy >= 100 && matchStarted) {
+                    this.isUltimateQueued = true; this.ultimateTimer = 25;
                     this.isShooting = true; this.shootAnimationTimer = 18; this.energy = 0; document.getElementById(this.isP1 ? 'p1-energy' : 'p2-energy').style.width = '0%';
                     cinematicTimer = 25; cinematicTarget = this; playSound('charge');
                 }
@@ -1450,6 +1496,24 @@
                     } else { this.isDashing = true; this.dashTimer = DASH_DURATION; playSound('dash'); }
                 }
             }
+        }
+
+        function togglePause() {
+            if (!matchStarted || isGameOver) return;
+            isPaused = !isPaused;
+            document.getElementById('pause-overlay').style.display = isPaused ? 'flex' : 'none';
+            if (isPaused) { stopBGM(); } else { startBGM(); }
+            playUISound('click');
+        }
+
+        function quitToMenu() {
+            playUISound('click');
+            isPaused = false;
+            document.getElementById('pause-overlay').style.display = 'none';
+            matchStarted = false;
+            stopBGM();
+            document.getElementById('menu-screen').style.display = 'flex';
+            document.getElementById('announcer').style.display = 'none';
         }
 
         // --- INPUT & STATE ---
@@ -1713,6 +1777,10 @@
 
         function animate() {
             if (isGameOver) return; animationId = window.requestAnimationFrame(animate);
+            if (isPaused) {
+                ctx.save(); ctx.fillStyle = 'rgba(0,0,0,0.4)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = 'white'; ctx.font = '60px Impact'; ctx.textAlign = 'center'; ctx.fillText('GAME PAUSED', canvas.width / 2, canvas.height / 2 - 100); ctx.restore(); return;
+            }
 
             if (impactFrames > 0) { ctx.filter = 'invert(1) contrast(200%)'; impactFrames--; } else { ctx.filter = 'none'; }
             ctx.save();
@@ -1722,13 +1790,21 @@
             if (cinematicTimer > 0) {
                 targetZoom = 1.8; targetCamX = (canvas.width / 2) - (cinematicTarget.position.x + cinematicTarget.width / 2); targetCamY = (canvas.height / 2) - (cinematicTarget.position.y + cinematicTarget.height / 2) + 30;
                 cinematicTimer--;
-                if (cinematicTimer === 0) {
-                    playSound(cinematicTarget.data.sfx); screenShake = 30; impactFrames = 3; const pType = cinematicTarget.data.projType;
-                    let isBeamLike = (pType === 'beam' || pType === 'fist' || pType === 'whip' || pType === 'smash');
-                    const projX = cinematicTarget.facing === 1 ? cinematicTarget.position.x + 60 : cinematicTarget.position.x - 10;
-                    projectiles.push(new Projectile({ position: { x: projX, y: cinematicTarget.position.y + 20 }, velocity: { x: cinematicTarget.facing * (isBeamLike ? 1 : 20), y: 0 }, charData: cinematicTarget.data, owner: cinematicTarget.charKey, ownerRef: cinematicTarget }));
-                }
             }
+
+            // Individual Ultimate Spawning
+            [player1, player2].forEach(user => {
+                if (user.isUltimateQueued) {
+                    user.ultimateTimer--;
+                    if (user.ultimateTimer === 0) {
+                        user.isUltimateQueued = false;
+                        playSound(user.data.sfx); screenShake = 30; impactFrames = 3; const pType = user.data.projType;
+                        let isGrowingBeam = (pType === 'beam' || pType === 'fist' || pType === 'whip' || pType === 'smash');
+                        const projX = user.facing === 1 ? user.position.x + 60 : user.position.x - 10;
+                        projectiles.push(new Projectile({ position: { x: projX, y: user.position.y + 20 }, velocity: { x: user.facing * (isGrowingBeam ? 1 : 10), y: 0 }, charData: user.data, owner: user.charKey, ownerRef: user }));
+                    }
+                }
+            });
             camZoom += (targetZoom - camZoom) * 0.1; camX += (targetCamX - camX) * 0.1; camY += (targetCamY - camY) * 0.1;
             ctx.translate(canvas.width / 2, canvas.height / 2); ctx.scale(camZoom, camZoom); ctx.translate(-canvas.width / 2, -canvas.height / 2); ctx.translate(camX, camY);
 
@@ -1798,6 +1874,12 @@
                                 pB.currentLength = Math.abs(clashX - pB.originX);
                                 screenShake = 40; globalHitStop = 15; impactFrames = 4;
                                 playSound('heavy_hit');
+                                // Enhanced Clash Effect
+                                ripples.push(new Ripple(clashX, clashY, '#fff'));
+                                for (let k = 0; k < 30; k++) particles.push(new Particle(clashX, clashY, (Math.random() - 0.5) * 40, (Math.random() - 0.5) * 40, pA.data.projColor, 15));
+                                for (let k = 0; k < 30; k++) particles.push(new Particle(clashX, clashY, (Math.random() - 0.5) * 40, (Math.random() - 0.5) * 40, pB.data.projColor, 15));
+                                ripples.push(new Ripple(clashX, clashY, pA.data.projColor));
+                                ripples.push(new Ripple(clashX, clashY, pB.data.projColor));
                                 // Dramatic clash explosion
                                 for (let k = 0; k < 40; k++) particles.push(new Particle(clashX, clashY, (Math.random() - 0.5) * 40, (Math.random() - 0.5) * 40, k % 2 === 0 ? pA.data.projColor : pB.data.projColor, 25));
                                 ripples.push(new Ripple(clashX, clashY, '#ffffff'));
@@ -1916,6 +1998,8 @@
         }
 
         window.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') { togglePause(); return; }
+            if (isPaused) return;
             if (listeningKey) {
                 event.preventDefault(); const key = event.key === ' ' ? ' ' : (event.key.length === 1 ? event.key.toLowerCase() : event.key);
                 if (key !== 'Escape') {
