@@ -1900,7 +1900,7 @@
 
         function openControls() {
             playUISound('click'); document.getElementById('menu-screen').style.display = 'none'; document.getElementById('controls-modal').style.display = 'flex';
-            document.getElementById('col-p2').style.opacity = isVersusCPU ? '0.3' : '1'; document.getElementById('col-p2').style.pointerEvents = isVersusCPU ? 'none' : 'auto';
+            document.getElementById('col-p2').style.opacity = '1'; document.getElementById('col-p2').style.pointerEvents = 'auto';
             updateControlsUI();
         }
         function closeControls() { playUISound('click'); document.getElementById('controls-modal').style.display = 'none'; document.getElementById('menu-screen').style.display = 'flex'; updateControlsText(); }
