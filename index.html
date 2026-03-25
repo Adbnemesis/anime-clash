@@ -777,19 +777,19 @@
 
     <script>
         // --- COMPETITIVE PHYSICS CONSTANTS ---
-        const GRAVITY = 1.1;
+        const GRAVITY = 1.0;
         const TERMINAL_VELOCITY = 14;
-        const MOVE_SPEED = 15;
-        const MOVE_ACCEL = 1.6;
+        const MOVE_SPEED = 13;
+        const MOVE_ACCEL = 1.5;
         const MOVE_DECEL = 0.7;
-        const JUMP_POWER = -19;
-        const DASH_SPEED = 42;
+        const JUMP_POWER = -17;
+        const DASH_SPEED = 36;
         const DASH_DURATION = 6;
-        const ATTACK_DURATION = 12;
+        const ATTACK_DURATION = 14;
         const MAX_HEALTH = 1000;
-        const BASE_DMG = 20;
+        const BASE_DMG = 22;
         const ULT_DMG = 250;
-        const BEAM_GROW_SPEED = 25;
+        const BEAM_GROW_SPEED = 28;
         const BEAM_MAX_LENGTH = 1200;
 
         // --- DATABASE ---
@@ -1081,125 +1081,166 @@
             draw() {
                 ctx.save();
                 let type = this.data.projType;
-                let isBeamType = (type === 'beam' || type === 'fist' || type === 'smash' || type === 'whip');
+                // ALL types use the unified originX → tipX coordinate system
+                let tipX = this.originX + this.direction * this.currentLength;
+                let beamY = this.position.y + this.height / 2;
+                let startX = this.originX;
+                let len = this.currentLength;
 
-                if (isBeamType) {
-                    // Draw beam from origin to current tip
-                    let tipX = this.originX + this.direction * this.currentLength;
-                    let beamY = this.position.y + this.height / 2;
-                    let startX = this.originX;
-                    let len = this.currentLength;
+                ctx.globalCompositeOperation = 'lighter'; ctx.shadowBlur = 40; ctx.shadowColor = this.data.projColor;
 
-                    ctx.globalCompositeOperation = 'lighter'; ctx.shadowBlur = 40; ctx.shadowColor = this.data.projColor;
-
-                    if (type === 'beam') {
-                        let bH = this.height - 20;
-                        let drawX = this.direction === 1 ? startX : tipX;
-                        ctx.fillStyle = this.data.projColor;
-                        ctx.fillRect(drawX, beamY - bH / 2, len, bH);
-                        ctx.fillStyle = 'white';
-                        ctx.fillRect(drawX, beamY - bH / 4, len, bH / 2);
-                        // Leading energy ball
-                        ctx.beginPath(); ctx.arc(tipX, beamY, 40 + Math.sin(Date.now() * 0.05) * 8, 0, Math.PI * 2); ctx.fill();
-                        // Energy crackle
-                        ctx.strokeStyle = 'white'; ctx.lineWidth = 2;
-                        for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.moveTo(tipX, beamY); ctx.lineTo(tipX + (Math.random() - 0.5) * 80, beamY + (Math.random() - 0.5) * 80); ctx.stroke(); }
-                        // Particles along beam
-                        if (Math.random() < 0.4) particles.push(new Particle(tipX, beamY, (Math.random() - 0.5) * 10, (Math.random() - 0.5) * 10, this.data.projColor, 8));
-                    }
-                    else if (type === 'fist') {
-                        let drawX = this.direction === 1 ? startX : tipX;
-                        ctx.globalCompositeOperation = 'source-over';
-                        ctx.fillStyle = this.data.skin || '#ffe0bd';
-                        ctx.fillRect(drawX, beamY - 25, len, 16); ctx.fillRect(drawX, beamY + 10, len, 16);
-                        ctx.fillStyle = '#f1c27d'; ctx.beginPath(); ctx.arc(tipX, beamY - 18, 35, 0, Math.PI * 2); ctx.fill();
-                        ctx.beginPath(); ctx.arc(tipX, beamY + 18, 35, 0, Math.PI * 2); ctx.fill();
-                    }
-                    else if (type === 'whip') {
-                        let drawX = this.direction === 1 ? startX : tipX;
-                        ctx.globalCompositeOperation = 'source-over'; ctx.fillStyle = '#cc0000';
-                        ctx.fillRect(drawX, beamY - 8, len, 16);
-                        let spikes = Math.floor(len / 60);
-                        for (let i = 0; i < spikes; i++) { let sx = drawX + i * 60; ctx.beginPath(); ctx.moveTo(sx, beamY - 8); ctx.lineTo(sx - 15, beamY - 45); ctx.lineTo(sx + 15, beamY - 8); ctx.fill(); }
-                    }
-                    else if (type === 'smash') {
-                        let drawX = this.direction === 1 ? startX : tipX;
-                        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-                        ctx.beginPath();
-                        ctx.moveTo(tipX, beamY - 60); ctx.lineTo(tipX, beamY + 60);
-                        ctx.lineTo(drawX, beamY + 20); ctx.lineTo(drawX, beamY - 20);
-                        ctx.closePath(); ctx.fill();
-                        ctx.strokeStyle = '#00ffcc'; ctx.lineWidth = 8; ctx.stroke();
-                    }
-
-                    // Update hit box to cover the full beam
-                    this.position.x = this.direction === 1 ? startX : tipX;
-                    this.width = len;
+                // Trailing particles for ALL types
+                if (len > 30 && !this.isClashing && Math.random() < 0.5) {
+                    particles.push(new Particle(tipX, beamY, (Math.random() - 0.5) * 8, (Math.random() - 0.5) * 8, this.data.projColor, 8 + Math.random() * 6));
                 }
-                else {
-                    // Non-beam projectiles - original rendering
-                    ctx.translate(this.position.x + this.width / 2, this.position.y + this.height / 2);
-                    if (this.velocity.x < 0) ctx.scale(-1, 1);
-                    ctx.globalCompositeOperation = 'lighter'; ctx.shadowBlur = 40; ctx.shadowColor = this.data.projColor; ctx.fillStyle = this.data.projColor;
 
-                    if (type === 'shuriken') {
-                        ctx.rotate(this.rotation); this.rotation += 0.3;
-                        ctx.fillStyle = '#00ffff'; ctx.beginPath(); ctx.arc(0, 0, 35, 0, Math.PI * 2); ctx.fill();
-                        ctx.fillStyle = 'white'; ctx.beginPath(); ctx.arc(0, 0, 15, 0, Math.PI * 2); ctx.fill();
-                        ctx.fillStyle = 'rgba(0, 200, 255, 0.9)'; for (let i = 0; i < 4; i++) { ctx.rotate(Math.PI / 2); ctx.beginPath(); ctx.moveTo(0, -20); ctx.lineTo(25, -90); ctx.lineTo(-25, -90); ctx.fill(); }
-                    }
-                    else if (type === 'fire') {
-                        let grad = ctx.createRadialGradient(15, 0, 5, 0, 0, 60); grad.addColorStop(0, 'white'); grad.addColorStop(0.3, '#ffaa00'); grad.addColorStop(1, '#ff0000');
-                        ctx.fillStyle = grad; ctx.beginPath(); ctx.arc(0, 0, 60, -Math.PI / 2, Math.PI / 2); ctx.lineTo(-90, 0); ctx.fill();
-                        for (let i = 0; i < 3; i++) particles.push(new Particle(this.position.x + this.width / 2 - (this.velocity.x > 0 ? 60 : -60), this.position.y + this.height / 2 + (Math.random() - 0.5) * 60, -this.velocity.x * 0.2, (Math.random() - 0.5) * 5, '#ff4400', 10));
-                    }
-                    else if (type === 'slash') {
-                        ctx.fillStyle = this.data.projColor; ctx.beginPath(); ctx.ellipse(10, 0, 50, 120, 0, -Math.PI / 2, Math.PI / 2); ctx.lineTo(-50, 0); ctx.fill();
-                        ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.ellipse(15, 0, 20, 80, 0, -Math.PI / 2, Math.PI / 2); ctx.fill();
-                    }
-                    else if (type === 'water') {
-                        ctx.fillStyle = 'rgba(0, 150, 255, 0.9)'; ctx.beginPath(); ctx.arc(0, Math.sin(Date.now() * 0.03) * 30, 60, 0, Math.PI * 2); ctx.fill();
-                        ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(20, Math.sin(Date.now() * 0.03) * 30 - 15, 15, 0, Math.PI * 2); ctx.fill();
-                        particles.push(new Particle(this.position.x + this.width / 2, this.position.y + this.height / 2, -this.velocity.x * 0.1, (Math.random() - 0.5) * 10, '#00ffff', 15));
-                    }
-                    else if (type === 'hollow') {
-                        ctx.fillStyle = '#330066'; ctx.beginPath(); ctx.arc(0, 0, 90, 0, Math.PI * 2); ctx.fill();
-                        ctx.fillStyle = '#9900ff'; ctx.beginPath(); ctx.arc(0, 0, 70, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(0, 0, 30, 0, Math.PI * 2); ctx.fill();
-                        ctx.strokeStyle = 'white'; ctx.lineWidth = 2; for (let i = 0; i < 5; i++) { ctx.beginPath(); ctx.moveTo((Math.random() - 0.5) * 200, (Math.random() - 0.5) * 200); ctx.lineTo(0, 0); ctx.stroke(); }
-                    }
-                    else if (type === 'cleave') { ctx.fillStyle = 'rgba(255, 50, 50, 0.9)'; ctx.rotate(Math.PI / 6); ctx.fillRect(-40, -120, 15, 240); ctx.rotate(-Math.PI / 3); ctx.fillRect(-20, -120, 15, 240); }
-                    else if (type === 'explosion') {
-                        let s = 90 + Math.sin(Date.now() * 0.08) * 30;
-                        ctx.fillStyle = '#ff4400'; ctx.beginPath(); ctx.arc(0, 0, s, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = '#ffaa00'; ctx.beginPath(); ctx.arc(0, 0, s * 0.6, 0, Math.PI * 2); ctx.fill();
-                        for (let i = 0; i < 3; i++) particles.push(new Particle(this.position.x + this.width / 2, this.position.y + this.height / 2, (Math.random() - 0.5) * 30, (Math.random() - 0.5) * 30, '#ffaa00', 20));
-                    }
+                // Update hit box to cover the full beam length for ALL types
+                this.position.x = this.direction === 1 ? startX : tipX;
+                this.width = Math.max(len, 10);
+
+                if (type === 'beam') {
+                    let bH = this.height - 20;
+                    let drawX = this.direction === 1 ? startX : tipX;
+                    ctx.fillStyle = this.data.projColor;
+                    ctx.fillRect(drawX, beamY - bH / 2, len, bH);
+                    ctx.fillStyle = 'white';
+                    ctx.fillRect(drawX + len * 0.1, beamY - bH / 4, len * 0.8, bH / 2);
+                    ctx.beginPath(); ctx.arc(tipX, beamY, 40 + Math.sin(Date.now() * 0.05) * 8, 0, Math.PI * 2); ctx.fill();
+                    ctx.strokeStyle = 'white'; ctx.lineWidth = 2;
+                    for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.moveTo(tipX, beamY); ctx.lineTo(tipX + (Math.random() - 0.5) * 80, beamY + (Math.random() - 0.5) * 80); ctx.stroke(); }
+                }
+                else if (type === 'fist') {
+                    let drawX = this.direction === 1 ? startX : tipX;
+                    ctx.globalCompositeOperation = 'source-over';
+                    ctx.fillStyle = '#ffe0bd';
+                    ctx.fillRect(drawX, beamY - 25, len, 16); ctx.fillRect(drawX, beamY + 10, len, 16);
+                    ctx.fillStyle = '#f1c27d'; ctx.beginPath(); ctx.arc(tipX, beamY - 18, 35, 0, Math.PI * 2); ctx.fill();
+                    ctx.beginPath(); ctx.arc(tipX, beamY + 18, 35, 0, Math.PI * 2); ctx.fill();
+                }
+                else if (type === 'whip') {
+                    ctx.globalCompositeOperation = 'source-over'; ctx.fillStyle = '#cc0000';
+                    let drawX = this.direction === 1 ? startX : tipX;
+                    ctx.fillRect(drawX, beamY - 8, len, 16);
+                    let spikes = Math.floor(len / 60);
+                    for (let i = 0; i < spikes; i++) { let sx = drawX + i * 60; ctx.beginPath(); ctx.moveTo(sx, beamY - 8); ctx.lineTo(sx - 15, beamY - 45); ctx.lineTo(sx + 15, beamY - 8); ctx.fill(); }
+                }
+                else if (type === 'smash') {
+                    let drawX = this.direction === 1 ? startX : tipX;
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+                    ctx.beginPath();
+                    ctx.moveTo(tipX, beamY - 60); ctx.lineTo(tipX, beamY + 60);
+                    ctx.lineTo(drawX, beamY + 20); ctx.lineTo(drawX, beamY - 20);
+                    ctx.closePath(); ctx.fill();
+                    ctx.strokeStyle = '#00ffcc'; ctx.lineWidth = 8; ctx.stroke();
+                }
+                else if (type === 'shuriken') {
+                    // Wind trail from source
+                    let drawX = this.direction === 1 ? startX : tipX;
+                    ctx.fillStyle = this.data.projColor; ctx.globalAlpha = 0.2;
+                    ctx.fillRect(drawX, beamY - 12, len, 24); ctx.globalAlpha = 1;
+                    // Spinning shuriken at tip
+                    ctx.save(); ctx.translate(tipX, beamY); this.rotation += 0.3; ctx.rotate(this.rotation);
+                    ctx.fillStyle = '#00ffff'; ctx.beginPath(); ctx.arc(0, 0, 35, 0, Math.PI * 2); ctx.fill();
+                    ctx.fillStyle = 'white'; ctx.beginPath(); ctx.arc(0, 0, 15, 0, Math.PI * 2); ctx.fill();
+                    ctx.fillStyle = 'rgba(0, 200, 255, 0.9)'; for (let i = 0; i < 4; i++) { ctx.rotate(Math.PI / 2); ctx.beginPath(); ctx.moveTo(0, -20); ctx.lineTo(25, -90); ctx.lineTo(-25, -90); ctx.fill(); }
+                    ctx.restore();
+                }
+                else if (type === 'fire') {
+                    // Fire trail from source
+                    let drawX = this.direction === 1 ? startX : tipX;
+                    ctx.fillStyle = this.data.projColor; ctx.globalAlpha = 0.15;
+                    ctx.fillRect(drawX, beamY - 18, len, 36); ctx.globalAlpha = 1;
+                    // Fireball at tip
+                    ctx.save(); ctx.translate(tipX, beamY);
+                    let grad = ctx.createRadialGradient(0, 0, 5, 0, 0, 60); grad.addColorStop(0, 'white'); grad.addColorStop(0.3, '#ffaa00'); grad.addColorStop(1, '#ff0000');
+                    ctx.fillStyle = grad; ctx.beginPath(); ctx.arc(0, 0, 60, 0, Math.PI * 2); ctx.fill();
+                    ctx.restore();
+                }
+                else if (type === 'slash') {
+                    // Green energy trail
+                    let drawX = this.direction === 1 ? startX : tipX;
+                    ctx.fillStyle = this.data.projColor; ctx.globalAlpha = 0.2;
+                    ctx.fillRect(drawX, beamY - 15, len, 30); ctx.globalAlpha = 1;
+                    // Slash crescent at tip
+                    ctx.save(); ctx.translate(tipX, beamY); ctx.scale(this.direction, 1);
+                    ctx.fillStyle = this.data.projColor; ctx.beginPath(); ctx.ellipse(10, 0, 50, 120, 0, -Math.PI / 2, Math.PI / 2); ctx.lineTo(-50, 0); ctx.fill();
+                    ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.ellipse(15, 0, 20, 80, 0, -Math.PI / 2, Math.PI / 2); ctx.fill();
+                    ctx.restore();
+                }
+                else if (type === 'water') {
+                    // Water stream trail
+                    ctx.strokeStyle = '#0066ff'; ctx.lineWidth = 20; ctx.globalAlpha = 0.35; ctx.beginPath();
+                    let segs = 12;
+                    for (let i = 0; i <= segs; i++) {
+                        let sx = startX + (tipX - startX) * (i / segs);
+                        let sy = beamY + Math.sin(i * 1.2 + Date.now() * 0.008) * 18;
+                        if (i === 0) ctx.moveTo(sx, sy); else ctx.lineTo(sx, sy);
+                    } ctx.stroke(); ctx.globalAlpha = 1;
+                    // Water sphere at tip
+                    ctx.save(); ctx.translate(tipX, beamY);
+                    ctx.fillStyle = 'rgba(0, 150, 255, 0.9)'; ctx.beginPath(); ctx.arc(0, Math.sin(Date.now() * 0.03) * 15, 60, 0, Math.PI * 2); ctx.fill();
+                    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(20, Math.sin(Date.now() * 0.03) * 15 - 15, 15, 0, Math.PI * 2); ctx.fill();
+                    ctx.restore();
+                }
+                else if (type === 'hollow') {
+                    // Purple void trail
+                    let drawX = this.direction === 1 ? startX : tipX;
+                    ctx.fillStyle = '#330066'; ctx.globalAlpha = 0.25;
+                    ctx.fillRect(drawX, beamY - 25, len, 50); ctx.globalAlpha = 1;
+                    // Hollow Purple sphere at tip
+                    ctx.save(); ctx.translate(tipX, beamY);
+                    ctx.fillStyle = '#330066'; ctx.beginPath(); ctx.arc(0, 0, 90, 0, Math.PI * 2); ctx.fill();
+                    ctx.fillStyle = '#9900ff'; ctx.beginPath(); ctx.arc(0, 0, 70, 0, Math.PI * 2); ctx.fill();
+                    ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(0, 0, 30, 0, Math.PI * 2); ctx.fill();
+                    ctx.strokeStyle = 'white'; ctx.lineWidth = 2; for (let i = 0; i < 5; i++) { ctx.beginPath(); ctx.moveTo((Math.random() - 0.5) * 200, (Math.random() - 0.5) * 200); ctx.lineTo(0, 0); ctx.stroke(); }
+                    ctx.restore();
+                }
+                else if (type === 'cleave') {
+                    // Red slash trail
+                    let drawX = this.direction === 1 ? startX : tipX;
+                    ctx.fillStyle = this.data.projColor; ctx.globalAlpha = 0.2;
+                    ctx.fillRect(drawX, beamY - 15, len, 30); ctx.globalAlpha = 1;
+                    // Crossed cleave at tip
+                    ctx.save(); ctx.translate(tipX, beamY); this.rotation += 0.25; ctx.rotate(this.rotation);
+                    ctx.fillStyle = 'rgba(255, 50, 50, 0.9)'; ctx.fillRect(-40, -120, 15, 240); ctx.rotate(Math.PI / 3); ctx.fillRect(-20, -120, 15, 240);
+                    ctx.restore();
+                }
+                else if (type === 'explosion') {
+                    // Explosion fire trail
+                    let drawX = this.direction === 1 ? startX : tipX;
+                    ctx.fillStyle = '#ffaa00'; ctx.globalAlpha = 0.15;
+                    ctx.fillRect(drawX, beamY - 20, len, 40); ctx.globalAlpha = 1;
+                    // Expanding fireball at tip
+                    ctx.save(); ctx.translate(tipX, beamY);
+                    let s = 90 + Math.sin(Date.now() * 0.08) * 30;
+                    ctx.fillStyle = '#ff4400'; ctx.beginPath(); ctx.arc(0, 0, s, 0, Math.PI * 2); ctx.fill();
+                    ctx.fillStyle = '#ffaa00'; ctx.beginPath(); ctx.arc(0, 0, s * 0.6, 0, Math.PI * 2); ctx.fill();
+                    if (Math.random() < 0.3) particles.push(new Particle(tipX, beamY, (Math.random() - 0.5) * 30, (Math.random() - 0.5) * 30, '#ffaa00', 15));
+                    ctx.restore();
                 }
                 ctx.restore();
             }
             update() {
-                let type = this.data.projType;
-                let isBeamType = (type === 'beam' || type === 'fist' || type === 'smash' || type === 'whip');
-
-                if (isBeamType) {
-                    // Grow beam outward
-                    if (!this.isClashing && this.stoppedAt === null) {
-                        this.currentLength += BEAM_GROW_SPEED;
-                        if (this.currentLength > BEAM_MAX_LENGTH) {
-                            this.currentLength = BEAM_MAX_LENGTH;
-                            this.markedForDeletion = true;
-                        }
-                    } else if (this.isClashing) {
-                        this.clashTimer++;
-                        if (this.clashTimer > 60) this.markedForDeletion = true;
-                    } else if (this.stoppedAt !== null) {
-                        // Beam stopped on hit - shrink after a moment
-                        this.clashTimer++;
-                        if (this.clashTimer > 20) this.markedForDeletion = true;
+                // UNIFIED: All projTypes grow from origin like beams
+                if (!this.isClashing && this.stoppedAt === null) {
+                    this.currentLength += BEAM_GROW_SPEED;
+                    if (this.currentLength > BEAM_MAX_LENGTH) {
+                        this.currentLength = BEAM_MAX_LENGTH;
+                        this.markedForDeletion = true;
                     }
-                } else {
-                    // Non-beam: move at smoother speed
-                    this.position.x += this.velocity.x;
-                    if (this.position.x > canvas.width + 400 || this.position.x < -600) this.markedForDeletion = true;
+                } else if (this.isClashing) {
+                    this.clashTimer++;
+                    // Clash explosion burst at the end
+                    if (this.clashTimer > 50) {
+                        this.markedForDeletion = true;
+                        let tipX = this.originX + this.direction * this.currentLength;
+                        let tipY = this.position.y + this.height / 2;
+                        ripples.push(new Ripple(tipX, tipY, this.data.projColor));
+                        for (let i = 0; i < 15; i++) particles.push(new Particle(tipX, tipY, (Math.random() - 0.5) * 30, (Math.random() - 0.5) * 30, this.data.projColor, 15));
+                    }
+                } else if (this.stoppedAt !== null) {
+                    this.clashTimer++;
+                    if (this.clashTimer > 20) this.markedForDeletion = true;
                 }
                 this.draw();
             }
@@ -1247,11 +1288,11 @@
                     let scaledDamage = damage * Math.pow(0.85, attacker.comboCount);
                     if (scaledDamage < 2) scaledDamage = 2; // Minimum chip damage
 
-                    this.health -= scaledDamage; this.hitStunTimer = isHeavy ? 18 : 8;
+                    this.health -= scaledDamage; this.hitStunTimer = isHeavy ? 20 : 10;
                     this.isAttacking = false; this.attackFrames = 0; this.isShooting = false; this.isDashing = false; this.addEnergy(10);
-                    this.jumps = 2; this.vibrateTimer = isHeavy ? 10 : 4;
+                    this.jumps = 2; this.vibrateTimer = isHeavy ? 12 : 5;
 
-                    this.velocity.x = direction * (isHeavy ? 30 : 12); this.velocity.y = isHeavy ? -12 : -6;
+                    this.velocity.x = direction * (isHeavy ? 28 : 10); this.velocity.y = isHeavy ? -10 : -5;
 
                     // Knockdown on heavy hits
                     if (isHeavy && !isHazard) {
@@ -1259,7 +1300,7 @@
                     }
 
                     if (isHazard) { playSound('hit'); globalHitStop = 6; this.velocity.y = -14; }
-                    else if (isHeavy) { playSound('heavy_hit'); screenShake = 30; globalHitStop = 10; impactFrames = 2; }
+                    else if (isHeavy) { playSound('heavy_hit'); screenShake = 35; globalHitStop = 12; impactFrames = 3; }
                     else { playSound('hit'); globalHitStop = 3; }
 
                     attacker.comboCount++; attacker.comboTimer = 80;
@@ -1510,10 +1551,20 @@
             playUISound('click');
             isPaused = false;
             document.getElementById('pause-overlay').style.display = 'none';
-            matchStarted = false;
-            stopBGM();
+            matchStarted = false; isGameOver = true;
+            if (animationId) cancelAnimationFrame(animationId);
+            stopBGM(); clearTimeout(timerId);
+            // Reset announcer visibility (opacity, not display) so countdown works on restart
+            let ann = document.getElementById('announcer');
+            ann.style.opacity = 0; ann.style.display = 'block'; ann.style.color = '#fff';
+            document.getElementById('game-container').style.display = 'none';
+            document.getElementById('controls-hint').style.display = 'none';
+            document.getElementById('result-screen').style.display = 'none';
             document.getElementById('menu-screen').style.display = 'flex';
-            document.getElementById('announcer').style.display = 'none';
+            p1Choice = null; p2Choice = null; mapChoice = null;
+            document.querySelectorAll('.char-card').forEach(c => c.classList.remove('selected-p1', 'selected-p2'));
+            document.querySelectorAll('.map-card').forEach(c => c.classList.remove('selected-map'));
+            goToMenu('mode'); startMenuBGM();
         }
 
         // --- INPUT & STATE ---
@@ -1852,16 +1903,13 @@
                 }
 
                 // --- Beam collision system ---
-                // Check beam-vs-beam clash
+                // Check ALL projectile-vs-projectile clash (unified for every type)
                 for (let i = 0; i < projectiles.length; i++) {
                     for (let j = i + 1; j < projectiles.length; j++) {
                         let pA = projectiles[i], pB = projectiles[j];
                         if (pA.owner === pB.owner || pA.isClashing || pB.isClashing) continue;
-                        let typeA = pA.data.projType, typeB = pB.data.projType;
-                        let beamTypesA = ['beam', 'fist', 'smash', 'whip'], beamTypesB = ['beam', 'fist', 'smash', 'whip'];
-                        let aIsBeam = beamTypesA.includes(typeA), bIsBeam = beamTypesB.includes(typeB);
-                        // Both must be beam-type and heading toward each other
-                        if (aIsBeam && bIsBeam && pA.direction !== pB.direction) {
+                        // Any two opposing projectiles can clash
+                        if (pA.direction !== pB.direction) {
                             let tipA = pA.originX + pA.direction * pA.currentLength;
                             let tipB = pB.originX + pB.direction * pB.currentLength;
                             if ((pA.direction === 1 && tipA >= tipB) || (pA.direction === -1 && tipA <= tipB)) {
@@ -1869,29 +1917,24 @@
                                 pA.isClashing = true; pB.isClashing = true;
                                 let clashX = (tipA + tipB) / 2;
                                 let clashY = (pA.position.y + pA.height / 2 + pB.position.y + pB.height / 2) / 2;
-                                // Stop beams at clash point
                                 pA.currentLength = Math.abs(clashX - pA.originX);
                                 pB.currentLength = Math.abs(clashX - pB.originX);
-                                screenShake = 40; globalHitStop = 15; impactFrames = 4;
+                                screenShake = 45; globalHitStop = 16; impactFrames = 5;
                                 playSound('heavy_hit');
-                                // Enhanced Clash Effect
+                                // Massive clash explosion
                                 ripples.push(new Ripple(clashX, clashY, '#fff'));
-                                for (let k = 0; k < 30; k++) particles.push(new Particle(clashX, clashY, (Math.random() - 0.5) * 40, (Math.random() - 0.5) * 40, pA.data.projColor, 15));
-                                for (let k = 0; k < 30; k++) particles.push(new Particle(clashX, clashY, (Math.random() - 0.5) * 40, (Math.random() - 0.5) * 40, pB.data.projColor, 15));
                                 ripples.push(new Ripple(clashX, clashY, pA.data.projColor));
                                 ripples.push(new Ripple(clashX, clashY, pB.data.projColor));
-                                // Dramatic clash explosion
-                                for (let k = 0; k < 40; k++) particles.push(new Particle(clashX, clashY, (Math.random() - 0.5) * 40, (Math.random() - 0.5) * 40, k % 2 === 0 ? pA.data.projColor : pB.data.projColor, 25));
-                                ripples.push(new Ripple(clashX, clashY, '#ffffff'));
-                                ripples.push(new Ripple(clashX, clashY, pA.data.projColor));
+                                for (let k = 0; k < 40; k++) particles.push(new Particle(clashX, clashY, (Math.random() - 0.5) * 50, (Math.random() - 0.5) * 50, k % 2 === 0 ? pA.data.projColor : pB.data.projColor, 20));
                                 sparks.push(new HitSpark(clashX, clashY, '#ffffff'));
+                                sparks.push(new HitSpark(clashX, clashY, pA.data.projColor));
                             }
                         }
                     }
                 }
                 // Draw beam clash effects
                 projectiles.forEach(proj => {
-                    if (proj.isClashing && proj.clashTimer < 60) {
+                    if (proj.isClashing && proj.clashTimer < 50) {
                         let tipX = proj.originX + proj.direction * proj.currentLength;
                         let tipY = proj.position.y + proj.height / 2;
                         let pulse = Math.sin(proj.clashTimer * 0.3) * 20 + 50;
@@ -1906,34 +1949,22 @@
                     }
                 });
 
-                // Projectile-vs-player collision
+                // Projectile-vs-player collision (unified: all projectiles push)
                 projectiles.forEach((proj, index) => {
                     proj.update();
-                    let type = proj.data.projType;
-                    let isBeamType = true; // All ultimate projectiles push the target
 
                     if (!proj.isClashing && !proj.pushingTarget) {
                         let target = proj.ownerRef === player1 ? player2 : player1;
                         if (target && collisionDetection(proj, target)) {
-                            if (isBeamType && proj.stoppedAt === null) {
-                                if (!proj.hitDone) {
-                                    target.takeHit(ULT_DMG, proj.direction, true);
-                                    proj.pushingTarget = target;
-                                    target.isBeamPushed = true;
-                                    target.beamPushDirection = proj.direction;
-                                    proj.hitDone = true;
-                                    ctx.save(); ctx.globalCompositeOperation = 'lighter';
-                                    ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.fillRect(-canvas.width, -canvas.height, canvas.width * 3, canvas.height * 3);
-                                    ctx.restore();
-                                }
-                            } else if (!isBeamType && !proj.hitDone) {
-                                proj.hitDone = true;
+                            if (proj.stoppedAt === null && !proj.hitDone) {
                                 target.takeHit(ULT_DMG, proj.direction, true);
+                                proj.pushingTarget = target;
+                                target.isBeamPushed = true;
+                                target.beamPushDirection = proj.direction;
+                                proj.hitDone = true;
                                 ctx.save(); ctx.globalCompositeOperation = 'lighter';
                                 ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.fillRect(-canvas.width, -canvas.height, canvas.width * 3, canvas.height * 3);
                                 ctx.restore();
-                                proj.markedForDeletion = true;
-                                if (target.health <= 0) determineWinner();
                             }
                         }
                     }
@@ -1941,16 +1972,33 @@
                     if (proj.pushingTarget) {
                         let t = proj.pushingTarget;
                         t.isBeamPushed = true;
-                        t.velocity.x = proj.direction * 30; // Forceful dynamic push
+                        t.velocity.x = proj.direction * 26;
                         t.position.x += t.velocity.x;
                         proj.currentLength = Math.abs(t.position.x + (proj.direction === 1 ? 0 : t.width) - proj.originX);
+                        // Check obstacle (platform) collision during push
+                        let hitObstacle = false;
+                        if (currentMapData && currentMapData.platforms) {
+                            currentMapData.platforms.forEach(plat => {
+                                let platLeft = plat.x, platRight = plat.x + plat.w;
+                                let platTop = plat.y, platBottom = plat.y + 20;
+                                if (t.position.y + t.height > platTop && t.position.y < platBottom) {
+                                    if (proj.direction === 1 && t.position.x + t.width >= platLeft && t.position.x < platRight) {
+                                        t.position.x = platLeft - t.width; hitObstacle = true;
+                                    } else if (proj.direction === -1 && t.position.x <= platRight && t.position.x + t.width > platLeft) {
+                                        t.position.x = platRight; hitObstacle = true;
+                                    }
+                                }
+                            });
+                        }
                         // Hit global boundary wall
-                        if (t.position.x <= 0 || t.position.x + t.width >= canvas.width) {
-                            t.position.x = t.position.x <= 0 ? 0 : canvas.width - t.width;
+                        if (t.position.x <= 0 || t.position.x + t.width >= canvas.width || hitObstacle) {
+                            if (!hitObstacle) t.position.x = t.position.x <= 0 ? 0 : canvas.width - t.width;
                             t.isBeamPushed = false;
-                            t.takeHit(100, proj.direction, true, true); // Wall crash damage
-                            screenShake = 40; playSound('heavy_hit');
-                            for (let k = 0; k < 25; k++) particles.push(new Particle(t.position.x + t.width / 2, t.position.y + t.height / 2, (Math.random() - 0.5) * 30, (Math.random() - 0.5) * 30, proj.data.projColor, 20));
+                            t.takeHit(100, proj.direction, true, true);
+                            screenShake = 45; playSound('heavy_hit'); impactFrames = 4;
+                            for (let k = 0; k < 30; k++) particles.push(new Particle(t.position.x + t.width / 2, t.position.y + t.height / 2, (Math.random() - 0.5) * 35, (Math.random() - 0.5) * 35, proj.data.projColor, 20));
+                            ripples.push(new Ripple(t.position.x + t.width / 2, t.position.y + t.height / 2, proj.data.projColor));
+                            ripples.push(new Ripple(t.position.x + t.width / 2, t.position.y + t.height / 2, '#fff'));
                             proj.markedForDeletion = true;
                             proj.pushingTarget = null;
                             if (t.health <= 0) determineWinner();
