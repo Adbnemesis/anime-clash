@@ -1288,7 +1288,7 @@
 
             addEnergy(amount) { this.energy += amount; if (this.energy > 100) this.energy = 100; document.getElementById(this.isP1 ? 'p1-energy' : 'p2-energy').style.width = this.energy + '%'; }
 
-            takeHit(damage, direction, isHeavy = false, isHazard = false) {
+            takeHit(damage, direction, isHeavy = false, isHazard = false, soundType = null) {
                 if (this.isBlocking && !this.blockBroken && direction !== this.facing && !isHazard) {
                     this.health -= damage * 0.1; this.velocity.x = direction * (isHeavy ? 15 : 6); this.velocity.y = 0; this.addEnergy(5); playSound('block');
                     ripples.push(new Ripple(this.position.x + 25, this.position.y + 50, '#00ff44')); globalHitStop = 3;
@@ -1314,9 +1314,10 @@
                         this.isKnockedDown = true; this.knockdownTimer = 28; this.tumbleRotation = 0;
                     }
 
+                    const finalSound = soundType || (isHeavy ? 'heavy_hit' : 'hit');
                     if (isHazard) { playSound('hit'); globalHitStop = 6; this.velocity.y = -14; }
-                    else if (isHeavy) { playSound('heavy_hit'); screenShake = 35; globalHitStop = 12; impactFrames = 3; }
-                    else { playSound('hit'); globalHitStop = 3; }
+                    else if (isHeavy) { playSound(finalSound); screenShake = 35; globalHitStop = 12; impactFrames = 3; }
+                    else { playSound(finalSound); globalHitStop = 3; }
 
                     attacker.comboCount++; attacker.comboTimer = 80;
 
@@ -1864,7 +1865,7 @@
                     user.ultimateTimer--;
                     if (user.ultimateTimer === 0) {
                         user.isUltimateQueued = false;
-                        playSound(user.data.sfx); screenShake = 30; impactFrames = 3; const pType = user.data.projType;
+                        playSound(user.data.projType); screenShake = 30; impactFrames = 3; const pType = user.data.projType;
                         let isGrowingBeam = (pType === 'beam' || pType === 'fist' || pType === 'whip' || pType === 'smash');
                         const projX = user.facing === 1 ? user.position.x + 60 : user.position.x - 10;
                         projectiles.push(new Projectile({ position: { x: projX, y: user.position.y + 20 }, velocity: { x: user.facing * (isGrowingBeam ? 1 : 10), y: 0 }, charData: user.data, owner: user.charKey, ownerRef: user }));
@@ -1910,11 +1911,11 @@
                 // Attack hit detection - swing phase hits (attackProgress between 0.3 and 0.6)
                 let p1Progress = player1.isAttacking ? (ATTACK_DURATION - player1.attackFrames) / ATTACK_DURATION : 0;
                 if (player1.isAttacking && p1Progress >= 0.35 && p1Progress <= 0.55 && !player1.hasHit && collisionDetection(player1.attackBox, player2)) {
-                    player1.hasHit = true; player2.takeHit(BASE_DMG, player1.facing); if (!player2.isBlocking) player1.addEnergy(15); if (player2.health <= 0) determineWinner();
+                    player1.hasHit = true; player2.takeHit(BASE_DMG, player1.facing, false, false, player1.data.meleeSfx); if (!player2.isBlocking) player1.addEnergy(15); if (player2.health <= 0) determineWinner();
                 }
                 let p2Progress = player2.isAttacking ? (ATTACK_DURATION - player2.attackFrames) / ATTACK_DURATION : 0;
                 if (player2.isAttacking && p2Progress >= 0.35 && p2Progress <= 0.55 && !player2.hasHit && collisionDetection(player2.attackBox, player1)) {
-                    player2.hasHit = true; player1.takeHit(BASE_DMG, player2.facing); if (!player1.isBlocking) player2.addEnergy(15); if (player1.health <= 0) determineWinner();
+                    player2.hasHit = true; player1.takeHit(BASE_DMG, player2.facing, false, false, player2.data.meleeSfx); if (!player1.isBlocking) player2.addEnergy(15); if (player1.health <= 0) determineWinner();
                 }
 
                 // --- Beam collision system ---
@@ -1972,7 +1973,7 @@
                         let target = proj.ownerRef === player1 ? player2 : player1;
                         if (target && collisionDetection(proj, target)) {
                             if (proj.stoppedAt === null && !proj.hitDone) {
-                                target.takeHit(ULT_DMG, proj.direction, true);
+                                target.takeHit(ULT_DMG, proj.direction, true, false, proj.data.projType);
                                 proj.pushingTarget = target;
                                 target.isBeamPushed = true;
                                 target.beamPushDirection = proj.direction;
